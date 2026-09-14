@@ -1,53 +1,130 @@
-import { useEffect, useState } from 'react'
-import { ArrowLeft, Heart, Share2, Star } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import {
+  useEffect,
+  useState,
+} from 'react'
+
+import {
+  ArrowLeft,
+  Heart,
+  Share2,
+  Star,
+} from 'lucide-react'
+
+import {
+  Link,
+  useParams,
+} from 'react-router-dom'
 
 import { supabase } from '../lib/supabase'
 import type { Product } from '../types/product'
 
+import {
+  isFavorite,
+  toggleFavorite,
+} from '../lib/favorites'
+
 export default function ProductDetail() {
   const { id } = useParams()
 
-  const [product, setProduct] = useState<Product | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [product, setProduct] =
+    useState<Product | null>(null)
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [favorite, setFavorite] =
+    useState(false)
+
+  const [shareMessage, setShareMessage] =
+    useState('')
+
+  // =========================
+  // LOAD PRODUCT
+  // =========================
 
   useEffect(() => {
     async function loadProduct() {
       if (!id) {
         setLoading(false)
+        setProduct(null)
         return
       }
 
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .eq('published', true)
-        .single()
+      setLoading(true)
+
+      const { data, error } =
+        await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .eq('published', true)
+          .single()
 
       if (error) {
-        console.error('Failed to load product:', error)
+        console.error(
+          'Failed to load product:',
+          error
+        )
+
         setProduct(null)
       } else if (data) {
         const mappedProduct: Product = {
           id: data.id,
           name: data.name,
-          price: Number(data.price ?? 0),
-          originalPrice: Number(data.original_price ?? 0),
-          rating: Number(data.rating ?? 0),
-          reviews: String(data.reviews ?? 0),
-          marketplace: data.marketplace,
-          category: data.category,
-          image: data.image || '',
-          affiliateUrl: data.affiliate_url || '',
-          badge: data.badge || '',
-          description: data.description || '',
-          trending: data.trending ?? false,
-          isNew: data.is_new ?? false,
-          picksyPick: data.picksy_pick ?? false,
+
+          price: Number(
+            data.price ?? 0
+          ),
+
+          originalPrice: Number(
+            data.original_price ?? 0
+          ),
+
+          rating: Number(
+            data.rating ?? 0
+          ),
+
+          reviews: String(
+            data.reviews ?? 0
+          ),
+
+          marketplace:
+            data.marketplace,
+
+          category:
+            data.category,
+
+          image:
+            data.image || '',
+
+          affiliateUrl:
+            data.affiliate_url || '',
+
+          badge:
+            data.badge || '',
+
+          description:
+            data.description || '',
+
+          trending:
+            Boolean(data.trending),
+
+          isNew:
+            Boolean(data.is_new),
+
+          picksyPick:
+            Boolean(data.picksy_pick),
+
+          published:
+            Boolean(data.published),
         }
 
         setProduct(mappedProduct)
+
+        // Load favorite state
+        setFavorite(
+          isFavorite(data.id)
+        )
       }
 
       setLoading(false)
@@ -56,18 +133,88 @@ export default function ProductDetail() {
     loadProduct()
   }, [id])
 
+  // =========================
+  // LISTEN FOR FAVORITE CHANGES
+  // =========================
+
+  useEffect(() => {
+    const handleFavoriteChange = () => {
+      if (id) {
+        setFavorite(
+          isFavorite(id)
+        )
+      }
+    }
+
+    window.addEventListener(
+      'picksy-favorites-changed',
+      handleFavoriteChange
+    )
+
+    return () => {
+      window.removeEventListener(
+        'picksy-favorites-changed',
+        handleFavoriteChange
+      )
+    }
+  }, [id])
+
+  // =========================
+  // TOGGLE FAVORITE
+  // =========================
+
+  const handleFavorite = () => {
+    if (!product) {
+      return
+    }
+
+    const newFavoriteState =
+      toggleFavorite(product.id)
+
+    setFavorite(newFavoriteState)
+
+    window.dispatchEvent(
+      new Event(
+        'picksy-favorites-changed'
+      )
+    )
+  }
+
+  // =========================
+  // LOADING
+  // =========================
+
   if (loading) {
     return (
       <main className="not-found">
-        <h1>Loading product...</h1>
+        <h1>
+          Loading product...
+        </h1>
+
+        <p>
+          Please wait while we fetch
+          the details.
+        </p>
       </main>
     )
   }
 
+  // =========================
+  // PRODUCT NOT FOUND
+  // =========================
+
   if (!product) {
     return (
       <main className="not-found">
-        <h1>Product not found</h1>
+        <h1>
+          Product not found
+        </h1>
+
+        <p>
+          This product may have been
+          removed or is no longer
+          available.
+        </p>
 
         <Link to="/">
           Back to Picksy
@@ -76,35 +223,83 @@ export default function ProductDetail() {
     )
   }
 
+  // =========================
+  // DISCOUNT
+  // =========================
+
   const discount =
-    product.originalPrice > product.price
+    product.originalPrice > product.price &&
+    product.originalPrice > 0
       ? Math.round(
-          (1 - product.price / product.originalPrice) * 100
+          (1 -
+            product.price /
+              product.originalPrice) *
+            100
         )
       : 0
 
+  // =========================
+  // SHARE
+  // =========================
+
   const handleShare = async () => {
+    setShareMessage('')
+
+    const shareData = {
+      title: product.name,
+      text: `Check out this find on Picksy: ${product.name}`,
+      url: window.location.href,
+    }
+
     try {
-      await navigator.share({
-        title: product.name,
-        text: `Check out this find on Picksy: ${product.name}`,
-        url: window.location.href,
-      })
+      if (
+        navigator.share
+      ) {
+        await navigator.share(
+          shareData
+        )
+
+        return
+      }
+
+      await navigator.clipboard.writeText(
+        window.location.href
+      )
+
+      setShareMessage(
+        'Link copied!'
+      )
+
+      setTimeout(() => {
+        setShareMessage('')
+      }, 2500)
     } catch {
-      // User cancelled sharing or browser doesn't support it.
+      // User cancelled sharing.
     }
   }
 
   return (
     <main className="detail-page">
       <div className="container">
-        <Link className="back-link" to="/">
+
+        {/* =========================
+            BACK
+        ========================= */}
+
+        <Link
+          className="back-link"
+          to="/"
+        >
           <ArrowLeft size={16} />
           Back to finds
         </Link>
 
         <div className="detail-grid">
-          {/* PRODUCT IMAGE */}
+
+          {/* =========================
+              PRODUCT IMAGE
+          ========================= */}
+
           <div className="detail-image">
             {product.image ? (
               <img
@@ -117,6 +312,8 @@ export default function ProductDetail() {
                   minHeight: '400px',
                   display: 'grid',
                   placeItems: 'center',
+                  textAlign: 'center',
+                  padding: '30px',
                 }}
               >
                 No image available
@@ -124,25 +321,39 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* PRODUCT DETAILS */}
+          {/* =========================
+              PRODUCT DETAILS
+          ========================= */}
+
           <div className="detail-copy">
-            <span className="marketplace">
-              {product.marketplace}
-            </span>
 
-            {product.badge && (
-              <span
-                style={{
-                  marginLeft: '8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                }}
-              >
-                {product.badge}
+            {/* MARKETPLACE */}
+
+            <div>
+              <span className="marketplace">
+                {product.marketplace}
               </span>
-            )}
 
-            <h1>{product.name}</h1>
+              {product.badge && (
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {product.badge}
+                </span>
+              )}
+            </div>
+
+            {/* NAME */}
+
+            <h1>
+              {product.name}
+            </h1>
+
+            {/* RATING */}
 
             <div className="detail-rating">
               <Star
@@ -150,24 +361,40 @@ export default function ProductDetail() {
                 fill="currentColor"
               />
 
-              {product.rating}
+              <span>
+                {product.rating
+                  ? product.rating.toFixed(1)
+                  : '0.0'}
+              </span>
 
               <span>
-                ({product.reviews} reviews)
+                (
+                {product.reviews}
+                {' '}
+                reviews)
               </span>
             </div>
+
+            {/* DESCRIPTION */}
 
             <p>
               {product.description ||
                 'A useful and interesting find curated by Picksy.'}
             </p>
 
+            {/* PRICE */}
+
             <div className="detail-price">
+
               <strong>
-                ₹{product.price.toLocaleString('en-IN')}
+                ₹
+                {product.price.toLocaleString(
+                  'en-IN'
+                )}
               </strong>
 
-              {product.originalPrice > product.price && (
+              {product.originalPrice >
+                product.price && (
                 <>
                   <del>
                     ₹
@@ -176,19 +403,30 @@ export default function ProductDetail() {
                     )}
                   </del>
 
-                  <span>
-                    {discount}% OFF
-                  </span>
+                  {discount > 0 && (
+                    <span>
+                      {discount}% OFF
+                    </span>
+                  )}
                 </>
               )}
+
             </div>
 
+            {/* =========================
+                ACTIONS
+            ========================= */}
+
             <div className="detail-actions">
+
               {/* AFFILIATE LINK */}
+
               {product.affiliateUrl ? (
                 <a
                   className="primary-cta"
-                  href={product.affiliateUrl}
+                  href={
+                    product.affiliateUrl
+                  }
                   target="_blank"
                   rel="noopener noreferrer nofollow sponsored"
                 >
@@ -200,40 +438,92 @@ export default function ProductDetail() {
                   disabled
                   style={{
                     opacity: 0.6,
-                    cursor: 'not-allowed',
+                    cursor:
+                      'not-allowed',
                   }}
                 >
                   Deal Link Coming Soon
                 </button>
               )}
 
-              <button className="secondary-cta">
-                <Heart size={18} />
-                Save
+              {/* =========================
+                  FAVORITE
+              ========================= */}
+
+              <button
+                className={`secondary-cta ${
+                  favorite
+                    ? 'is-favorite'
+                    : ''
+                }`}
+                type="button"
+                onClick={handleFavorite}
+                aria-pressed={favorite}
+              >
+                <Heart
+                  size={18}
+                  fill={
+                    favorite
+                      ? 'currentColor'
+                      : 'none'
+                  }
+                />
+
+                {favorite
+                  ? 'Saved'
+                  : 'Save'}
               </button>
+
+              {/* SHARE */}
 
               <button
                 className="secondary-cta"
+                type="button"
                 onClick={handleShare}
               >
                 <Share2 size={18} />
                 Share
               </button>
+
             </div>
 
+            {/* SHARE MESSAGE */}
+
+            {shareMessage && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                }}
+              >
+                {shareMessage}
+              </div>
+            )}
+
+            {/* =========================
+                PICKSY NOTE
+            ========================= */}
+
             <div className="picksy-note">
-              <span>⭐</span>
+              <span>
+                ⭐
+              </span>
 
               <div>
-                <b>Why Picksy picked this</b>
+                <b>
+                  Why Picksy picked this
+                </b>
 
                 <p>
-                  It fits our focus on useful,
-                  interesting finds at a price worth
+                  It fits our focus on
+                  useful, interesting
+                  finds at a price worth
                   checking.
                 </p>
               </div>
             </div>
+
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import {
   ShoppingBag,
   Zap,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import Header from '../components/Header'
 import Section from '../components/Section'
@@ -28,38 +29,67 @@ export default function Home() {
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
-  // Load products from Supabase
+  // =========================
+  // LOAD PRODUCTS FROM SUPABASE
+  // =========================
+
   useEffect(() => {
     async function loadProducts() {
       setLoading(true)
+      setLoadError(false)
 
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('published', true)
-        .order('created_at', { ascending: false })
+        .order('created_at', {
+          ascending: false,
+        })
 
       if (error) {
-        console.error('Failed to load products:', error)
+        console.error(
+          'Failed to load products:',
+          error
+        )
+
         setProducts([])
+        setLoadError(true)
       } else {
-        const mappedProducts: Product[] = (data ?? []).map((p: any) => ({
+        const mappedProducts: Product[] = (
+          data ?? []
+        ).map((p: any) => ({
           id: p.id,
           name: p.name,
           price: Number(p.price ?? 0),
-          originalPrice: Number(p.original_price ?? 0),
+          originalPrice: Number(
+            p.original_price ?? 0
+          ),
           rating: Number(p.rating ?? 0),
-          reviews: String(p.reviews ?? 0),
+          reviews: String(
+            p.reviews ?? 0
+          ),
           marketplace: p.marketplace,
           category: p.category,
           image: p.image || '',
-          affiliateUrl: p.affiliate_url || '',
+          affiliateUrl:
+            p.affiliate_url || '',
           badge: p.badge || '',
-          description: p.description || '',
-          trending: p.trending ?? false,
-          isNew: p.is_new ?? false,
-          picksyPick: p.picksy_pick ?? false,
+          description:
+            p.description || '',
+          trending: Boolean(
+            p.trending
+          ),
+          isNew: Boolean(
+            p.is_new
+          ),
+          picksyPick: Boolean(
+            p.picksy_pick
+          ),
+          published: Boolean(
+            p.published
+          ),
         }))
 
         setProducts(mappedProducts)
@@ -71,10 +101,25 @@ export default function Home() {
     loadProducts()
   }, [])
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+  // =========================
+  // SEARCH FILTER
+  // =========================
 
-    if (!q) return products
+  const filtered = useMemo(() => {
+    const q = query
+      .trim()
+      .toLowerCase()
+
+    if (!q) {
+      return products
+    }
+
+    // Special Under ₹299 filter
+    if (q === 'under299') {
+      return products.filter(
+        (p) => p.price <= 299
+      )
+    }
 
     return products.filter((p) =>
       [
@@ -82,20 +127,59 @@ export default function Home() {
         p.category,
         p.marketplace,
         p.description,
-      ].some((v) => v.toLowerCase().includes(q))
+      ].some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(q)
+      )
     )
-  }, [query, products])
+  }, [
+    query,
+    products,
+  ])
 
-  const trending = filtered.filter((p) => p.trending)
-  const newest = filtered.filter((p) => p.isNew)
-  const picks = filtered.filter((p) => p.picksyPick)
-  const under299 = filtered.filter((p) => p.price <= 299)
+  // =========================
+  // PRODUCT GROUPS
+  // =========================
 
-  // Loading screen
+  const trending =
+    filtered.filter(
+      (p) => p.trending
+    )
+
+  const newest =
+    filtered.filter(
+      (p) => p.isNew
+    )
+
+  const picks =
+    filtered.filter(
+      (p) => p.picksyPick
+    )
+
+  const under299 =
+    filtered.filter(
+      (p) => p.price <= 299
+    )
+
+  // =========================
+  // UNDER ₹299 FILTER
+  // =========================
+
+  const showUnder299 = () => {
+    setQuery('under299')
+  }
+
+  // =========================
+  // LOADING SCREEN
+  // =========================
+
   if (loading) {
     return (
       <>
-        <Header onSearch={setQuery} />
+        <Header
+          onSearch={setQuery}
+        />
 
         <main
           className="container"
@@ -104,15 +188,78 @@ export default function Home() {
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: '40px', marginBottom: '15px' }}>
+          <div
+            style={{
+              fontSize: '40px',
+              marginBottom: '15px',
+            }}
+          >
             ✨
           </div>
 
-          <h2>Loading amazing finds...</h2>
+          <h2>
+            Loading amazing finds...
+          </h2>
 
           <p>
-            Finding the best products for you.
+            Finding the best products
+            for you.
           </p>
+        </main>
+      </>
+    )
+  }
+
+  // =========================
+  // ERROR SCREEN
+  // =========================
+
+  if (loadError) {
+    return (
+      <>
+        <Header
+          onSearch={setQuery}
+        />
+
+        <main
+          className="container"
+          style={{
+            padding: '100px 20px',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '40px',
+              marginBottom: '15px',
+            }}
+          >
+            😕
+          </div>
+
+          <h2>
+            We couldn't load the finds.
+          </h2>
+
+          <p>
+            Please refresh the page and
+            try again.
+          </p>
+
+          <button
+            className="admin-primary-btn"
+            onClick={() =>
+              window.location.reload()
+            }
+            style={{
+              marginTop: '20px',
+              padding: '12px 20px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+            }}
+          >
+            Try Again
+          </button>
         </main>
       </>
     )
@@ -120,14 +267,22 @@ export default function Home() {
 
   return (
     <>
-      <Header onSearch={setQuery} />
+      <Header
+        onSearch={setQuery}
+      />
 
       <main>
-        {/* HERO */}
+        {/* =========================
+            HERO
+        ========================= */}
+
         <section className="hero container">
           <div className="hero-copy">
             <span className="pill">
-              <Zap size={14} fill="currentColor" />
+              <Zap
+                size={14}
+                fill="currentColor"
+              />
               Trending Finds
             </span>
 
@@ -138,7 +293,8 @@ export default function Home() {
             </h1>
 
             <p>
-              Trending, affordable & useful products —{' '}
+              Trending, affordable & useful
+              products —{' '}
               <b>curated for you.</b>
             </p>
 
@@ -148,7 +304,9 @@ export default function Home() {
                 e.preventDefault()
 
                 document
-                  .getElementById('discover')
+                  .getElementById(
+                    'discover'
+                  )
                   ?.scrollIntoView({
                     behavior: 'smooth',
                   })
@@ -157,12 +315,23 @@ export default function Home() {
               <Search size={20} />
 
               <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={
+                  query === 'under299'
+                    ? ''
+                    : query
+                }
+                onChange={(e) =>
+                  setQuery(
+                    e.target.value
+                  )
+                }
                 placeholder="Search for products, categories, or brands..."
               />
 
-              <button aria-label="Search">
+              <button
+                type="submit"
+                aria-label="Search"
+              >
                 <Search size={19} />
               </button>
             </form>
@@ -170,25 +339,42 @@ export default function Home() {
             <div className="popular-searches">
               <span>Popular:</span>
 
-              <button onClick={() => setQuery('earbuds')}>
+              <button
+                onClick={() =>
+                  setQuery('earbuds')
+                }
+              >
                 Wireless Earbuds
               </button>
 
-              <button onClick={() => setQuery('home')}>
+              <button
+                onClick={() =>
+                  setQuery('home')
+                }
+              >
                 Home Decor
               </button>
 
-              <button onClick={() => setQuery('kitchen')}>
+              <button
+                onClick={() =>
+                  setQuery('kitchen')
+                }
+              >
                 Kitchen
               </button>
 
-              <button onClick={() => setQuery('')}>
+              <button
+                onClick={showUnder299}
+              >
                 Under ₹299
               </button>
             </div>
           </div>
 
-          {/* HERO ART */}
+          {/* =========================
+              HERO ART
+          ========================= */}
+
           <div className="hero-art">
             <div className="float-card card-one">
               ✨ Good Things Ahead
@@ -234,41 +420,89 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CATEGORIES */}
+        {/* =========================
+            CATEGORIES
+        ========================= */}
+
         <section
           id="categories"
           className="category-strip container"
         >
           <div className="section-heading compact">
-            <h2>Shop by Category</h2>
+            <h2>
+              Shop by Category
+            </h2>
 
-            <a href="#categories">
-              Explore all <ArrowRight size={15} />
-            </a>
+            <Link to="/category/more">
+              Explore all{' '}
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
           <div className="category-row">
-            {categories.map(([name, icon]) => (
-              <button
-                key={name}
-                onClick={() => setQuery(name)}
-              >
-                <span>{icon}</span>
-                <b>{name}</b>
-              </button>
-            ))}
+            {categories.map(
+              ([name, icon]) => (
+                <Link
+                  key={name}
+                  to={`/category/${name.toLowerCase()}`}
+                  className="category-link"
+                  style={{
+                    textDecoration:
+                      'none',
+                    color: 'inherit',
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={{
+                      width: '100%',
+                    }}
+                  >
+                    <span>
+                      {icon}
+                    </span>
+
+                    <b>
+                      {name}
+                    </b>
+                  </button>
+                </Link>
+              )
+            )}
           </div>
         </section>
 
-        {/* PRODUCTS */}
+        {/* =========================
+            PRODUCTS
+        ========================= */}
+
         <div id="discover">
           {query && (
             <div className="search-result container">
               <span>
-                Showing results for <b>“{query}”</b>
+                {query ===
+                'under299' ? (
+                  <>
+                    Showing products{' '}
+                    <b>
+                      under ₹299
+                    </b>
+                  </>
+                ) : (
+                  <>
+                    Showing results for{' '}
+                    <b>
+                      “{query}”
+                    </b>
+                  </>
+                )}
               </span>
 
-              <button onClick={() => setQuery('')}>
+              <button
+                onClick={() =>
+                  setQuery('')
+                }
+              >
                 Clear
               </button>
             </div>
@@ -278,11 +512,18 @@ export default function Home() {
             id="trending"
             title="Trending Now"
             eyebrow="Hot picks people are checking out"
-            icon={<span>🔥</span>}
+            icon={
+              <span>
+                🔥
+              </span>
+            }
             products={
               trending.length
                 ? trending
-                : filtered.slice(0, 5)
+                : filtered.slice(
+                    0,
+                    5
+                  )
             }
           />
 
@@ -290,11 +531,18 @@ export default function Home() {
             id="new"
             title="New Finds"
             eyebrow="Fresh additions worth a look"
-            icon={<span>✨</span>}
+            icon={
+              <span>
+                ✨
+              </span>
+            }
             products={
               newest.length
                 ? newest
-                : filtered.slice(0, 5)
+                : filtered.slice(
+                    0,
+                    5
+                  )
             }
           />
 
@@ -302,16 +550,26 @@ export default function Home() {
             id="picks"
             title="Picksy Picks"
             eyebrow="Handpicked by us, just for you"
-            icon={<span>⭐</span>}
+            icon={
+              <span>
+                ⭐
+              </span>
+            }
             products={
               picks.length
                 ? picks
-                : filtered.slice(0, 5)
+                : filtered.slice(
+                    0,
+                    5
+                  )
             }
           />
         </div>
 
-        {/* UNDER ₹299 */}
+        {/* =========================
+            UNDER ₹299
+        ========================= */}
+
         <section
           id="under299"
           className="budget-banner container"
@@ -321,29 +579,40 @@ export default function Home() {
               👑 Budget Friendly
             </span>
 
-            <h2>Under ₹299</h2>
+            <h2>
+              Under ₹299
+            </h2>
 
             <p>
-              Great quality. Amazing prices.
+              Great quality. Amazing
+              prices.
             </p>
           </div>
 
-          <button onClick={() => setQuery('')}>
-            Explore Now <ArrowRight size={16} />
+          <button
+            onClick={showUnder299}
+          >
+            Explore Now{' '}
+            <ArrowRight size={16} />
           </button>
 
           <div className="budget-items">
-            {under299.slice(0, 4).map((p) => (
-              <img
-                key={p.id}
-                src={p.image}
-                alt={p.name}
-              />
-            ))}
+            {under299
+              .slice(0, 4)
+              .map((p) => (
+                <img
+                  key={p.id}
+                  src={p.image}
+                  alt={p.name}
+                />
+              ))}
           </div>
         </section>
 
-        {/* FESTIVAL */}
+        {/* =========================
+            FESTIVAL
+        ========================= */}
+
         <section className="festival-banner container">
           <div>
             <span>
@@ -351,7 +620,8 @@ export default function Home() {
             </span>
 
             <h2>
-              Make your celebrations more special ✨
+              Make your celebrations
+              more special ✨
             </h2>
           </div>
 
@@ -365,15 +635,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TRUST */}
+        {/* =========================
+            TRUST
+        ========================= */}
+
         <section className="trust-strip container">
           <div>
             <span>🔎</span>
 
             <div>
-              <b>Curated Finds</b>
+              <b>
+                Curated Finds
+              </b>
+
               <small>
-                We search so you don't have to.
+                We search so you don't
+                have to.
               </small>
             </div>
           </div>
@@ -382,9 +659,13 @@ export default function Home() {
             <span>💰</span>
 
             <div>
-              <b>Value Focused</b>
+              <b>
+                Value Focused
+              </b>
+
               <small>
-                Trending picks at smart prices.
+                Trending picks at smart
+                prices.
               </small>
             </div>
           </div>
@@ -393,16 +674,23 @@ export default function Home() {
             <span>⚡</span>
 
             <div>
-              <b>Easy Discovery</b>
+              <b>
+                Easy Discovery
+              </b>
+
               <small>
-                Find your next favorite quickly.
+                Find your next favorite
+                quickly.
               </small>
             </div>
           </div>
         </section>
       </main>
 
-      {/* FOOTER */}
+      {/* =========================
+          FOOTER
+      ========================= */}
+
       <footer className="footer">
         <div className="container footer-grid">
           <div>
@@ -412,58 +700,75 @@ export default function Home() {
               </span>
 
               <span>
-                <strong>Picksy</strong>
-                <small>Curated for You</small>
+                <strong>
+                  Picksy
+                </strong>
+
+                <small>
+                  Curated for You
+                </small>
               </span>
             </div>
 
             <p>
-              Trending, affordable & useful finds —
-              curated for you.
+              Trending, affordable &
+              useful finds — curated for
+              you.
             </p>
           </div>
 
           <div>
-            <h4>Explore</h4>
+            <h4>
+              Explore
+            </h4>
 
-            <a href="#trending">
-              Trending
-            </a>
+            <Link to="/category/more">
+              All Finds
+            </Link>
 
-            <a href="#new">
-              New Finds
-            </a>
+            <Link to="/category/fashion">
+              Fashion
+            </Link>
 
-            <a href="#categories">
+            <Link to="/category/home">
+              Home
+            </Link>
+
+            <Link to="/category/kitchen">
+              Kitchen
+            </Link>
+          </div>
+
+          <div>
+            <h4>
               Categories
-            </a>
+            </h4>
+
+            <Link to="/category/women">
+              Women
+            </Link>
+
+            <Link to="/category/men">
+              Men
+            </Link>
+
+            <Link to="/category/kids">
+              Kids
+            </Link>
+
+            <Link to="/category/beauty">
+              Beauty
+            </Link>
           </div>
 
           <div>
-            <h4>Picksy</h4>
-
-            <a href="#">
-              About
-            </a>
-
-            <a href="#">
-              Affiliate Disclosure
-            </a>
-
-            <a href="#">
-              Privacy Policy
-            </a>
-
-            <a href="#">
-              Terms
-            </a>
-          </div>
-
-          <div>
-            <h4>Stay Updated</h4>
+            <h4>
+              Stay Updated
+            </h4>
 
             <p>
-              More trending finds. Less scrolling.
+              More trending finds. Less
+              scrolling.
             </p>
 
             <div className="email-box">
@@ -471,19 +776,22 @@ export default function Home() {
                 placeholder="Enter your email"
               />
 
-              <button>→</button>
+              <button>
+                →
+              </button>
             </div>
           </div>
         </div>
 
         <div className="container footer-bottom">
           <span>
-            © 2026 Picksy. All rights reserved.
+            © 2026 Picksy. All rights
+            reserved.
           </span>
 
           <span>
-            Picksy may earn a commission from
-            qualifying purchases.
+            Picksy may earn a commission
+            from qualifying purchases.
           </span>
         </div>
       </footer>

@@ -13,7 +13,9 @@ export type Product = {
   affiliateUrl?: string
   badge?: string
   description: string
+
   trending?: boolean
   isNew?: boolean
   picksyPick?: boolean
+  published?: boolean
 }
