@@ -99,7 +99,7 @@ function dbToProduct(row: DbProduct): Product {
 
 function productToDb(product: Product) {
   return {
-    name: product.name,
+    name: product.name.trim(),
     price: product.price,
     original_price: product.originalPrice,
     rating: product.rating,
@@ -107,9 +107,9 @@ function productToDb(product: Product) {
     marketplace: product.marketplace,
     category: product.category,
     image: product.image || null,
-    affiliate_url: product.affiliateUrl || null,
-    badge: product.badge || null,
-    description: product.description || null,
+    affiliate_url: product.affiliateUrl?.trim() || null,
+    badge: product.badge?.trim() || null,
+    description: product.description?.trim() || null,
     trending: product.trending ?? false,
     is_new: product.isNew ?? false,
     picksy_pick: product.picksyPick ?? false,
@@ -197,12 +197,12 @@ export default function Admin() {
 
   async function checkSession() {
     const {
-      data: { session },
+      data: { session: currentSession },
     } = await supabase.auth.getSession()
 
-    setSession(session)
+    setSession(currentSession)
 
-    if (session) {
+    if (currentSession) {
       await Promise.all([
         loadProducts(),
         loadCategories(),
@@ -235,7 +235,7 @@ export default function Admin() {
   async function loadCategories() {
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, slug')
       .order('name', { ascending: true })
 
     if (error) {
@@ -260,7 +260,7 @@ export default function Admin() {
 
     const { error } =
       await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       })
 
@@ -281,6 +281,9 @@ export default function Admin() {
     setProducts([])
     setCategories([])
     setNotice(null)
+    setActiveSection('overview')
+    setShowForm(false)
+    setEditingProduct(null)
   }
 
   async function handleDelete(id: string) {
@@ -331,18 +334,7 @@ export default function Admin() {
 
   function openAddForm() {
     setEditingProduct(null)
-
-    const firstCategory =
-      categories[0]?.name || 'Home'
-
     setShowForm(true)
-
-    if (!editingProduct) {
-      // ProductForm receives the default category below.
-      // This keeps the form compatible even if categories
-      // are temporarily empty.
-      void firstCategory
-    }
   }
 
   function openEditForm(product: Product) {
@@ -497,6 +489,21 @@ export default function Admin() {
       return
     }
 
+    const alreadyExists = categories.some(
+      (category) =>
+        category.name.toLowerCase() ===
+        trimmedName.toLowerCase(),
+    )
+
+    if (alreadyExists) {
+      showNotice(
+        'error',
+        'This category already exists.',
+      )
+
+      return
+    }
+
     setCategorySaving(true)
 
     const { data, error } = await supabase
@@ -514,7 +521,7 @@ export default function Admin() {
       showNotice(
         'error',
         error.code === '23505'
-          ? 'This category already exists.'
+          ? 'This category or slug already exists.'
           : `Unable to add category: ${error.message}`,
       )
 
@@ -580,6 +587,22 @@ export default function Admin() {
 
     if (!oldCategory) return
 
+    const duplicateCategory = categories.some(
+      (category) =>
+        category.id !== editingCategoryId &&
+        category.name.toLowerCase() ===
+          trimmedName.toLowerCase(),
+    )
+
+    if (duplicateCategory) {
+      showNotice(
+        'error',
+        'This category already exists.',
+      )
+
+      return
+    }
+
     setCategorySaving(true)
 
     const { data, error } = await supabase
@@ -598,7 +621,7 @@ export default function Admin() {
       showNotice(
         'error',
         error.code === '23505'
-          ? 'This category already exists.'
+          ? 'This category or slug already exists.'
           : `Unable to update category: ${error.message}`,
       )
 
@@ -606,11 +629,6 @@ export default function Admin() {
       return
     }
 
-    /*
-     * Keep existing products in sync with the renamed
-     * category so product filters and public pages
-     * continue working correctly.
-     */
     if (oldCategory.name !== trimmedName) {
       const { error: productUpdateError } =
         await supabase
@@ -627,20 +645,22 @@ export default function Admin() {
 
         showNotice(
           'error',
-          `Category renamed, but existing products could not be updated: ${productUpdateError.message}`,
+          `Category renamed, but products could not be updated: ${productUpdateError.message}`,
+        )
+
+        await loadProducts()
+      } else {
+        setProducts((current) =>
+          current.map((product) =>
+            product.category === oldCategory.name
+              ? {
+                  ...product,
+                  category: trimmedName,
+                }
+              : product,
+          ),
         )
       }
-
-      setProducts((current) =>
-        current.map((product) =>
-          product.category === oldCategory.name
-            ? {
-                ...product,
-                category: trimmedName,
-              }
-            : product,
-        ),
-      )
     }
 
     setCategories((current) =>
@@ -673,17 +693,36 @@ export default function Admin() {
   async function handleDeleteCategory(
     category: Category,
   ) {
-    const productCount = products.filter(
-      (product) =>
-        product.category === category.name,
-    ).length
+    /*
+     * Check the database directly instead of relying
+     * only on the products currently loaded in memory.
+     */
+    const { count, error: countError } =
+      await supabase
+        .from('products')
+        .select('id', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('category', category.name)
 
-    if (productCount > 0) {
+    if (countError) {
+      console.error(countError)
+
       showNotice(
         'error',
-        `Cannot delete "${category.name}" because ${productCount} product${
-          productCount === 1 ? '' : 's'
-        } use this category.`,
+        `Unable to check category usage: ${countError.message}`,
+      )
+
+      return
+    }
+
+    if ((count ?? 0) > 0) {
+      showNotice(
+        'error',
+        `Cannot delete "${category.name}" because ${
+          count ?? 0
+        } product${count === 1 ? '' : 's'} use this category.`,
       )
 
       return
@@ -720,6 +759,10 @@ export default function Admin() {
       ),
     )
 
+    if (categoryFilter === category.name) {
+      setCategoryFilter('All')
+    }
+
     setCategoryDeletingId(null)
 
     showNotice(
@@ -729,15 +772,21 @@ export default function Admin() {
   }
 
   const filteredProducts = useMemo(() => {
+    const normalizedSearch =
+      search.trim().toLowerCase()
+
     return products.filter((product) => {
       const searchMatch =
-        !search.trim() ||
+        !normalizedSearch ||
         product.name
           .toLowerCase()
-          .includes(search.toLowerCase()) ||
+          .includes(normalizedSearch) ||
         product.category
           .toLowerCase()
-          .includes(search.toLowerCase())
+          .includes(normalizedSearch) ||
+        product.marketplace
+          .toLowerCase()
+          .includes(normalizedSearch)
 
       const categoryMatch =
         categoryFilter === 'All' ||
@@ -844,6 +893,7 @@ export default function Admin() {
           </div>
 
           <h1>Picksy Admin</h1>
+
           <p>
             Sign in to manage your products.
           </p>
@@ -1097,7 +1147,9 @@ export default function Admin() {
                 {recentProducts.length === 0 ? (
                   <div className="admin-empty">
                     <Package size={38} />
+
                     <h3>No products yet</h3>
+
                     <p>
                       Add your first product to
                       start building Picksy.
@@ -1283,12 +1335,15 @@ export default function Admin() {
                   <option value="All">
                     All Marketplaces
                   </option>
+
                   <option value="Amazon">
                     Amazon
                   </option>
+
                   <option value="Flipkart">
                     Flipkart
                   </option>
+
                   <option value="Meesho">
                     Meesho
                   </option>
@@ -1305,9 +1360,11 @@ export default function Admin() {
                   <option value="All">
                     All Status
                   </option>
+
                   <option value="Published">
                     Published
                   </option>
+
                   <option value="Unpublished">
                     Unpublished
                   </option>
@@ -1324,12 +1381,15 @@ export default function Admin() {
                   <option value="All">
                     All Products
                   </option>
+
                   <option value="Trending">
                     🔥 Trending
                   </option>
+
                   <option value="New">
                     🆕 New Finds
                   </option>
+
                   <option value="Picksy Pick">
                     ⭐ Picksy Pick
                   </option>
@@ -1454,6 +1514,8 @@ export default function Admin() {
                       if (
                         e.key === 'Enter'
                       ) {
+                        e.preventDefault()
+
                         if (
                           editingCategoryId
                         ) {
@@ -1523,13 +1585,12 @@ export default function Admin() {
                     <h2>
                       All Categories
                     </h2>
+
                     <p>
                       {categories.length}{' '}
-                      categor
-                      {categories.length ===
-                      1
-                        ? 'y'
-                        : 'ies'}
+                      {categories.length === 1
+                        ? 'category'
+                        : 'categories'}
                     </p>
                   </div>
                 </div>
@@ -1538,9 +1599,11 @@ export default function Admin() {
                 0 ? (
                   <div className="admin-empty">
                     <Tags size={42} />
+
                     <h3>
                       No categories yet
                     </h3>
+
                     <p>
                       Add your first category
                       above.
@@ -1583,10 +1646,9 @@ export default function Admin() {
 
                               <span>
                                 {count}{' '}
-                                product
                                 {count === 1
-                                  ? ''
-                                  : 's'}
+                                  ? 'product'
+                                  : 'products'}
                               </span>
                             </div>
 
@@ -1701,8 +1763,7 @@ export default function Admin() {
       {showForm && (
         <ProductForm
           product={
-            editingProduct ??
-            {
+            editingProduct ?? {
               ...emptyProduct,
               category:
                 categories[0]?.name ||
@@ -1876,10 +1937,21 @@ function ProductForm({
   }
 
   async function uploadImage(file: File) {
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5 MB.')
+      return
+    }
+
     setUploading(true)
 
     const extension =
-      file.name.split('.').pop() || 'jpg'
+      file.name.split('.').pop()?.toLowerCase() ||
+      'jpg'
 
     const fileName = `products/${crypto.randomUUID()}.${extension}`
 
@@ -1889,6 +1961,7 @@ function ProductForm({
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
+          contentType: file.type,
         })
 
     if (error) {
