@@ -18,20 +18,11 @@ import {
 import { supabase } from '../lib/supabase'
 import type { Marketplace, Product } from '../types/product'
 
-const categories = [
-  'Women',
-  'Men',
-  'Kids',
-  'Home',
-  'Kitchen',
-  'Beauty',
-  'Electronics',
-  'Gadgets',
-  'Fashion',
-  'Lifestyle',
-  'Accessories',
-  'Festival',
-]
+type Category = {
+  id: string
+  name: string
+  slug: string
+}
 
 type AdminSection =
   | 'overview'
@@ -127,10 +118,20 @@ function productToDb(product: Product) {
   }
 }
 
+function createSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export default function Admin() {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
 
   const [activeSection, setActiveSection] =
     useState<AdminSection>('overview')
@@ -154,6 +155,13 @@ export default function Admin() {
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  const [categoryName, setCategoryName] = useState('')
+  const [editingCategoryId, setEditingCategoryId] =
+    useState<string | null>(null)
+  const [categorySaving, setCategorySaving] = useState(false)
+  const [categoryDeletingId, setCategoryDeletingId] =
+    useState<string | null>(null)
+
   function showNotice(
     type: NoticeType,
     message: string,
@@ -173,13 +181,16 @@ export default function Admin() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession)
+    } = supabase.auth.onAuthStateChange(
+      (_event, currentSession) => {
+        setSession(currentSession)
 
-      if (currentSession) {
-        loadProducts()
-      }
-    })
+        if (currentSession) {
+          loadProducts()
+          loadCategories()
+        }
+      },
+    )
 
     return () => subscription.unsubscribe()
   }, [])
@@ -192,7 +203,10 @@ export default function Admin() {
     setSession(session)
 
     if (session) {
-      await loadProducts()
+      await Promise.all([
+        loadProducts(),
+        loadCategories(),
+      ])
     }
 
     setLoading(false)
@@ -206,25 +220,49 @@ export default function Admin() {
 
     if (error) {
       console.error(error)
+
       showNotice(
         'error',
         'Unable to load products. Please try again.',
       )
+
       return
     }
 
     setProducts((data ?? []).map(dbToProduct))
   }
 
+  async function loadCategories() {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error(error)
+
+      showNotice(
+        'error',
+        'Unable to load categories. Please try again.',
+      )
+
+      return
+    }
+
+    setCategories((data ?? []) as Category[])
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+
     setLoginError('')
     setLoginLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
     if (error) {
       setLoginError(error.message)
@@ -239,12 +277,16 @@ export default function Admin() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
+
     setProducts([])
+    setCategories([])
     setNotice(null)
   }
 
   async function handleDelete(id: string) {
-    const product = products.find((item) => item.id === id)
+    const product = products.find(
+      (item) => item.id === id,
+    )
 
     const confirmed = window.confirm(
       `Are you sure you want to delete "${
@@ -274,7 +316,9 @@ export default function Admin() {
     }
 
     setProducts((current) =>
-      current.filter((product) => product.id !== id),
+      current.filter(
+        (product) => product.id !== id,
+      ),
     )
 
     setDeletingId(null)
@@ -287,7 +331,18 @@ export default function Admin() {
 
   function openAddForm() {
     setEditingProduct(null)
+
+    const firstCategory =
+      categories[0]?.name || 'Home'
+
     setShowForm(true)
+
+    if (!editingProduct) {
+      // ProductForm receives the default category below.
+      // This keeps the form compatible even if categories
+      // are temporarily empty.
+      void firstCategory
+    }
   }
 
   function openEditForm(product: Product) {
@@ -301,6 +356,7 @@ export default function Admin() {
         'error',
         'Please enter product name.',
       )
+
       return
     }
 
@@ -309,6 +365,7 @@ export default function Admin() {
         'error',
         'Please select a category.',
       )
+
       return
     }
 
@@ -317,6 +374,7 @@ export default function Admin() {
         'error',
         'Price cannot be negative.',
       )
+
       return
     }
 
@@ -325,14 +383,19 @@ export default function Admin() {
         'error',
         'Original price cannot be negative.',
       )
+
       return
     }
 
-    if (product.rating < 0 || product.rating > 5) {
+    if (
+      product.rating < 0 ||
+      product.rating > 5
+    ) {
       showNotice(
         'error',
         'Rating must be between 0 and 5.',
       )
+
       return
     }
 
@@ -360,7 +423,9 @@ export default function Admin() {
 
       setProducts((current) =>
         current.map((item) =>
-          item.id === product.id ? dbToProduct(data) : item,
+          item.id === product.id
+            ? dbToProduct(data)
+            : item,
         ),
       )
 
@@ -409,6 +474,260 @@ export default function Admin() {
     )
   }
 
+  async function handleAddCategory() {
+    const trimmedName = categoryName.trim()
+
+    if (!trimmedName) {
+      showNotice(
+        'error',
+        'Please enter category name.',
+      )
+
+      return
+    }
+
+    const slug = createSlug(trimmedName)
+
+    if (!slug) {
+      showNotice(
+        'error',
+        'Please enter a valid category name.',
+      )
+
+      return
+    }
+
+    setCategorySaving(true)
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        name: trimmedName,
+        slug,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error(error)
+
+      showNotice(
+        'error',
+        error.code === '23505'
+          ? 'This category already exists.'
+          : `Unable to add category: ${error.message}`,
+      )
+
+      setCategorySaving(false)
+      return
+    }
+
+    setCategories((current) =>
+      [...current, data as Category].sort(
+        (a, b) =>
+          a.name.localeCompare(b.name),
+      ),
+    )
+
+    setCategoryName('')
+    setCategorySaving(false)
+
+    showNotice(
+      'success',
+      'Category added successfully.',
+    )
+  }
+
+  function startEditCategory(category: Category) {
+    setEditingCategoryId(category.id)
+    setCategoryName(category.name)
+  }
+
+  function cancelEditCategory() {
+    setEditingCategoryId(null)
+    setCategoryName('')
+  }
+
+  async function handleUpdateCategory() {
+    if (!editingCategoryId) return
+
+    const trimmedName = categoryName.trim()
+
+    if (!trimmedName) {
+      showNotice(
+        'error',
+        'Please enter category name.',
+      )
+
+      return
+    }
+
+    const slug = createSlug(trimmedName)
+
+    if (!slug) {
+      showNotice(
+        'error',
+        'Please enter a valid category name.',
+      )
+
+      return
+    }
+
+    const oldCategory = categories.find(
+      (category) =>
+        category.id === editingCategoryId,
+    )
+
+    if (!oldCategory) return
+
+    setCategorySaving(true)
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update({
+        name: trimmedName,
+        slug,
+      })
+      .eq('id', editingCategoryId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error(error)
+
+      showNotice(
+        'error',
+        error.code === '23505'
+          ? 'This category already exists.'
+          : `Unable to update category: ${error.message}`,
+      )
+
+      setCategorySaving(false)
+      return
+    }
+
+    /*
+     * Keep existing products in sync with the renamed
+     * category so product filters and public pages
+     * continue working correctly.
+     */
+    if (oldCategory.name !== trimmedName) {
+      const { error: productUpdateError } =
+        await supabase
+          .from('products')
+          .update({
+            category: trimmedName,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq('category', oldCategory.name)
+
+      if (productUpdateError) {
+        console.error(productUpdateError)
+
+        showNotice(
+          'error',
+          `Category renamed, but existing products could not be updated: ${productUpdateError.message}`,
+        )
+      }
+
+      setProducts((current) =>
+        current.map((product) =>
+          product.category === oldCategory.name
+            ? {
+                ...product,
+                category: trimmedName,
+              }
+            : product,
+        ),
+      )
+    }
+
+    setCategories((current) =>
+      current
+        .map((category) =>
+          category.id === editingCategoryId
+            ? (data as Category)
+            : category,
+        )
+        .sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
+    )
+
+    if (
+      categoryFilter === oldCategory.name
+    ) {
+      setCategoryFilter(trimmedName)
+    }
+
+    cancelEditCategory()
+    setCategorySaving(false)
+
+    showNotice(
+      'success',
+      'Category updated successfully.',
+    )
+  }
+
+  async function handleDeleteCategory(
+    category: Category,
+  ) {
+    const productCount = products.filter(
+      (product) =>
+        product.category === category.name,
+    ).length
+
+    if (productCount > 0) {
+      showNotice(
+        'error',
+        `Cannot delete "${category.name}" because ${productCount} product${
+          productCount === 1 ? '' : 's'
+        } use this category.`,
+      )
+
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${category.name}"?`,
+    )
+
+    if (!confirmed) return
+
+    setCategoryDeletingId(category.id)
+
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', category.id)
+
+    if (error) {
+      console.error(error)
+
+      showNotice(
+        'error',
+        `Unable to delete category: ${error.message}`,
+      )
+
+      setCategoryDeletingId(null)
+      return
+    }
+
+    setCategories((current) =>
+      current.filter(
+        (item) => item.id !== category.id,
+      ),
+    )
+
+    setCategoryDeletingId(null)
+
+    showNotice(
+      'success',
+      'Category deleted successfully.',
+    )
+  }
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const searchMatch =
@@ -426,18 +745,24 @@ export default function Admin() {
 
       const marketplaceMatch =
         marketplaceFilter === 'All' ||
-        product.marketplace === marketplaceFilter
+        product.marketplace ===
+          marketplaceFilter
 
       const statusMatch =
         statusFilter === 'All' ||
-        (statusFilter === 'Published' && product.published) ||
-        (statusFilter === 'Unpublished' && !product.published)
+        (statusFilter === 'Published' &&
+          product.published) ||
+        (statusFilter === 'Unpublished' &&
+          !product.published)
 
       const quickMatch =
         quickFilter === 'All' ||
-        (quickFilter === 'Trending' && product.trending) ||
-        (quickFilter === 'New' && product.isNew) ||
-        (quickFilter === 'Picksy Pick' && product.picksyPick)
+        (quickFilter === 'Trending' &&
+          product.trending) ||
+        (quickFilter === 'New' &&
+          product.isNew) ||
+        (quickFilter === 'Picksy Pick' &&
+          product.picksyPick)
 
       return (
         searchMatch &&
@@ -458,11 +783,21 @@ export default function Admin() {
 
   const stats = {
     total: products.length,
-    published: products.filter((p) => p.published).length,
-    unpublished: products.filter((p) => !p.published).length,
-    trending: products.filter((p) => p.trending).length,
-    newFinds: products.filter((p) => p.isNew).length,
-    picksyPicks: products.filter((p) => p.picksyPick).length,
+    published: products.filter(
+      (p) => p.published,
+    ).length,
+    unpublished: products.filter(
+      (p) => !p.published,
+    ).length,
+    trending: products.filter(
+      (p) => p.trending,
+    ).length,
+    newFinds: products.filter(
+      (p) => p.isNew,
+    ).length,
+    picksyPicks: products.filter(
+      (p) => p.picksyPick,
+    ).length,
   }
 
   const recentProducts = products.slice(0, 5)
@@ -476,13 +811,15 @@ export default function Admin() {
   }
 
   const hasFilters =
-    search ||
+    Boolean(search) ||
     categoryFilter !== 'All' ||
     marketplaceFilter !== 'All' ||
     statusFilter !== 'All' ||
     quickFilter !== 'All'
 
-  function handleSectionChange(section: AdminSection) {
+  function handleSectionChange(
+    section: AdminSection,
+  ) {
     setActiveSection(section)
   }
 
@@ -498,20 +835,27 @@ export default function Admin() {
   if (!session) {
     return (
       <div className="admin-login-page">
-        <form className="admin-login-card" onSubmit={handleLogin}>
+        <form
+          className="admin-login-card"
+          onSubmit={handleLogin}
+        >
           <div className="admin-login-icon">
             <LayoutDashboard size={28} />
           </div>
 
           <h1>Picksy Admin</h1>
-          <p>Sign in to manage your products.</p>
+          <p>
+            Sign in to manage your products.
+          </p>
 
           <label>Email</label>
 
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
             placeholder="admin@example.com"
             required
             disabled={loginLoading}
@@ -522,7 +866,9 @@ export default function Admin() {
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
             placeholder="••••••••"
             required
             disabled={loginLoading}
@@ -539,7 +885,9 @@ export default function Admin() {
             type="submit"
             disabled={loginLoading}
           >
-            {loginLoading ? 'Signing in...' : 'Login'}
+            {loginLoading
+              ? 'Signing in...'
+              : 'Login'}
           </button>
         </form>
       </div>
@@ -589,7 +937,9 @@ export default function Admin() {
         <nav className="admin-nav">
           <button
             className={
-              activeSection === 'overview' ? 'active' : ''
+              activeSection === 'overview'
+                ? 'active'
+                : ''
             }
             onClick={() =>
               handleSectionChange('overview')
@@ -601,7 +951,9 @@ export default function Admin() {
 
           <button
             className={
-              activeSection === 'products' ? 'active' : ''
+              activeSection === 'products'
+                ? 'active'
+                : ''
             }
             onClick={() =>
               handleSectionChange('products')
@@ -669,123 +1021,8 @@ export default function Admin() {
             <header className="admin-topbar">
               <div>
                 <h1>Dashboard</h1>
-                <p>Manage your Picksy products</p>
-              </div>
-
-              <button
-                className="admin-add-btn"
-                onClick={openAddForm}
-              >
-                <Plus size={18} />
-                Add Product
-              </button>
-            </header>
-
-            <section className="admin-stats">
-              <div className="admin-stat-card">
-                <span>Total Products</span>
-                <strong>{stats.total}</strong>
-              </div>
-
-              <div className="admin-stat-card">
-                <span>Published</span>
-                <strong>{stats.published}</strong>
-              </div>
-
-              <div className="admin-stat-card">
-                <span>Unpublished</span>
-                <strong>{stats.unpublished}</strong>
-              </div>
-
-              <div className="admin-stat-card">
-                <span>Trending</span>
-                <strong>{stats.trending}</strong>
-              </div>
-
-              <div className="admin-stat-card">
-                <span>New Finds</span>
-                <strong>{stats.newFinds}</strong>
-              </div>
-
-              <div className="admin-stat-card">
-                <span>Picksy Picks</span>
-                <strong>{stats.picksyPicks}</strong>
-              </div>
-            </section>
-
-            <section className="admin-products-section">
-              <div className="admin-section-header">
-                <div>
-                  <h2>Recent Products</h2>
-                  <p>
-                    Your latest products added to Picksy
-                  </p>
-                </div>
-
-                <button
-                  className="admin-secondary-btn"
-                  onClick={() =>
-                    handleSectionChange('products')
-                  }
-                >
-                  View All Products
-                </button>
-              </div>
-
-              <div className="admin-table-wrapper">
-                {recentProducts.length === 0 ? (
-                  <div className="admin-empty">
-                    <Package size={38} />
-                    <h3>No products yet</h3>
-                    <p>
-                      Add your first product to start
-                      building Picksy.
-                    </p>
-
-                    <button onClick={openAddForm}>
-                      <Plus size={16} />
-                      Add Product
-                    </button>
-                  </div>
-                ) : (
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Marketplace</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Tags</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {recentProducts.map((product) => (
-                        <ProductTableRow
-                          key={product.id}
-                          product={product}
-                          onEdit={openEditForm}
-                          onDelete={handleDelete}
-                          deletingId={deletingId}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </section>
-          </>
-        )}
-
-        {activeSection === 'products' && (
-          <>
-            <header className="admin-topbar">
-              <div>
-                <h1>Products</h1>
                 <p>
-                  Manage your Picksy product catalog
+                  Manage your Picksy products
                 </p>
               </div>
 
@@ -811,7 +1048,9 @@ export default function Admin() {
 
               <div className="admin-stat-card">
                 <span>Unpublished</span>
-                <strong>{stats.unpublished}</strong>
+                <strong>
+                  {stats.unpublished}
+                </strong>
               </div>
 
               <div className="admin-stat-card">
@@ -826,7 +1065,144 @@ export default function Admin() {
 
               <div className="admin-stat-card">
                 <span>Picksy Picks</span>
-                <strong>{stats.picksyPicks}</strong>
+                <strong>
+                  {stats.picksyPicks}
+                </strong>
+              </div>
+            </section>
+
+            <section className="admin-products-section">
+              <div className="admin-section-header">
+                <div>
+                  <h2>Recent Products</h2>
+                  <p>
+                    Your latest products added to
+                    Picksy
+                  </p>
+                </div>
+
+                <button
+                  className="admin-secondary-btn"
+                  onClick={() =>
+                    handleSectionChange(
+                      'products',
+                    )
+                  }
+                >
+                  View All Products
+                </button>
+              </div>
+
+              <div className="admin-table-wrapper">
+                {recentProducts.length === 0 ? (
+                  <div className="admin-empty">
+                    <Package size={38} />
+                    <h3>No products yet</h3>
+                    <p>
+                      Add your first product to
+                      start building Picksy.
+                    </p>
+
+                    <button
+                      onClick={openAddForm}
+                    >
+                      <Plus size={16} />
+                      Add Product
+                    </button>
+                  </div>
+                ) : (
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Marketplace</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Tags</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {recentProducts.map(
+                        (product) => (
+                          <ProductTableRow
+                            key={product.id}
+                            product={product}
+                            onEdit={
+                              openEditForm
+                            }
+                            onDelete={
+                              handleDelete
+                            }
+                            deletingId={
+                              deletingId
+                            }
+                          />
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+
+        {activeSection === 'products' && (
+          <>
+            <header className="admin-topbar">
+              <div>
+                <h1>Products</h1>
+                <p>
+                  Manage your Picksy product
+                  catalog
+                </p>
+              </div>
+
+              <button
+                className="admin-add-btn"
+                onClick={openAddForm}
+              >
+                <Plus size={18} />
+                Add Product
+              </button>
+            </header>
+
+            <section className="admin-stats">
+              <div className="admin-stat-card">
+                <span>Total Products</span>
+                <strong>{stats.total}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Published</span>
+                <strong>{stats.published}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Unpublished</span>
+                <strong>
+                  {stats.unpublished}
+                </strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Trending</span>
+                <strong>{stats.trending}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>New Finds</span>
+                <strong>{stats.newFinds}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Picksy Picks</span>
+                <strong>
+                  {stats.picksyPicks}
+                </strong>
               </div>
             </section>
 
@@ -835,8 +1211,10 @@ export default function Admin() {
                 <div>
                   <h2>All Products</h2>
                   <p>
-                    Showing {filteredProducts.length} of{' '}
-                    {products.length} products
+                    Showing{' '}
+                    {filteredProducts.length}{' '}
+                    of {products.length}{' '}
+                    products
                   </p>
                 </div>
               </div>
@@ -850,13 +1228,17 @@ export default function Admin() {
                     placeholder="Search products..."
                     value={search}
                     onChange={(e) =>
-                      setSearch(e.target.value)
+                      setSearch(
+                        e.target.value,
+                      )
                     }
                   />
 
                   {search && (
                     <button
-                      onClick={() => setSearch('')}
+                      onClick={() =>
+                        setSearch('')
+                      }
                       title="Clear search"
                     >
                       <X size={16} />
@@ -869,43 +1251,55 @@ export default function Admin() {
                 <select
                   value={categoryFilter}
                   onChange={(e) =>
-                    setCategoryFilter(e.target.value)
+                    setCategoryFilter(
+                      e.target.value,
+                    )
                   }
                 >
                   <option value="All">
                     All Categories
                   </option>
 
-                  {categories.map((category) => (
-                    <option
-                      key={category}
-                      value={category}
-                    >
-                      {category}
-                    </option>
-                  ))}
+                  {categories.map(
+                    (category) => (
+                      <option
+                        key={category.id}
+                        value={category.name}
+                      >
+                        {category.name}
+                      </option>
+                    ),
+                  )}
                 </select>
 
                 <select
                   value={marketplaceFilter}
                   onChange={(e) =>
-                    setMarketplaceFilter(e.target.value)
+                    setMarketplaceFilter(
+                      e.target.value,
+                    )
                   }
                 >
                   <option value="All">
                     All Marketplaces
                   </option>
-                  <option value="Amazon">Amazon</option>
+                  <option value="Amazon">
+                    Amazon
+                  </option>
                   <option value="Flipkart">
                     Flipkart
                   </option>
-                  <option value="Meesho">Meesho</option>
+                  <option value="Meesho">
+                    Meesho
+                  </option>
                 </select>
 
                 <select
                   value={statusFilter}
                   onChange={(e) =>
-                    setStatusFilter(e.target.value)
+                    setStatusFilter(
+                      e.target.value,
+                    )
                   }
                 >
                   <option value="All">
@@ -922,7 +1316,9 @@ export default function Admin() {
                 <select
                   value={quickFilter}
                   onChange={(e) =>
-                    setQuickFilter(e.target.value)
+                    setQuickFilter(
+                      e.target.value,
+                    )
                   }
                 >
                   <option value="All">
@@ -951,19 +1347,27 @@ export default function Admin() {
               </div>
 
               <div className="admin-table-wrapper">
-                {filteredProducts.length === 0 ? (
+                {filteredProducts.length ===
+                0 ? (
                   <div className="admin-empty">
                     <Package size={38} />
 
-                    <h3>No products found</h3>
+                    <h3>
+                      No products found
+                    </h3>
 
                     <p>
-                      Try changing your filters or add a
-                      new product.
+                      Try changing your
+                      filters or add a new
+                      product.
                     </p>
 
                     {hasFilters && (
-                      <button onClick={clearFilters}>
+                      <button
+                        onClick={
+                          clearFilters
+                        }
+                      >
                         Clear Filters
                       </button>
                     )}
@@ -983,15 +1387,23 @@ export default function Admin() {
                     </thead>
 
                     <tbody>
-                      {filteredProducts.map((product) => (
-                        <ProductTableRow
-                          key={product.id}
-                          product={product}
-                          onEdit={openEditForm}
-                          onDelete={handleDelete}
-                          deletingId={deletingId}
-                        />
-                      ))}
+                      {filteredProducts.map(
+                        (product) => (
+                          <ProductTableRow
+                            key={product.id}
+                            product={product}
+                            onEdit={
+                              openEditForm
+                            }
+                            onDelete={
+                              handleDelete
+                            }
+                            deletingId={
+                              deletingId
+                            }
+                          />
+                        ),
+                      )}
                     </tbody>
                   </table>
                 )}
@@ -1005,19 +1417,229 @@ export default function Admin() {
             <header className="admin-topbar">
               <div>
                 <h1>Categories</h1>
-                <p>Manage product categories</p>
+                <p>
+                  Manage product categories
+                </p>
               </div>
             </header>
 
-            <div className="admin-empty">
-              <Tags size={42} />
-              <h3>
-                Categories module coming next
-              </h3>
-              <p>
-                Your current product categories are already
-                available in the product form.
-              </p>
+            <div className="admin-category-manager">
+              <div className="admin-category-form">
+                <div>
+                  <h2>
+                    {editingCategoryId
+                      ? 'Edit Category'
+                      : 'Add Category'}
+                  </h2>
+
+                  <p>
+                    {editingCategoryId
+                      ? 'Update the category name.'
+                      : 'Create a new product category.'}
+                  </p>
+                </div>
+
+                <div className="admin-category-input-row">
+                  <input
+                    type="text"
+                    value={categoryName}
+                    onChange={(e) =>
+                      setCategoryName(
+                        e.target.value,
+                      )
+                    }
+                    placeholder="e.g. Home Decor"
+                    disabled={categorySaving}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === 'Enter'
+                      ) {
+                        if (
+                          editingCategoryId
+                        ) {
+                          handleUpdateCategory()
+                        } else {
+                          handleAddCategory()
+                        }
+                      }
+                    }}
+                  />
+
+                  {editingCategoryId ? (
+                    <>
+                      <button
+                        className="admin-primary-btn"
+                        onClick={
+                          handleUpdateCategory
+                        }
+                        disabled={
+                          categorySaving
+                        }
+                      >
+                        <CheckCircle2
+                          size={17}
+                        />
+
+                        {categorySaving
+                          ? 'Updating...'
+                          : 'Update'}
+                      </button>
+
+                      <button
+                        className="admin-secondary-btn"
+                        onClick={
+                          cancelEditCategory
+                        }
+                        disabled={
+                          categorySaving
+                        }
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="admin-primary-btn"
+                      onClick={
+                        handleAddCategory
+                      }
+                      disabled={
+                        categorySaving
+                      }
+                    >
+                      <Plus size={17} />
+
+                      {categorySaving
+                        ? 'Adding...'
+                        : 'Add Category'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="admin-category-list">
+                <div className="admin-category-list-header">
+                  <div>
+                    <h2>
+                      All Categories
+                    </h2>
+                    <p>
+                      {categories.length}{' '}
+                      categor
+                      {categories.length ===
+                      1
+                        ? 'y'
+                        : 'ies'}
+                    </p>
+                  </div>
+                </div>
+
+                {categories.length ===
+                0 ? (
+                  <div className="admin-empty">
+                    <Tags size={42} />
+                    <h3>
+                      No categories yet
+                    </h3>
+                    <p>
+                      Add your first category
+                      above.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="admin-category-grid">
+                    {categories.map(
+                      (category) => {
+                        const count =
+                          products.filter(
+                            (product) =>
+                              product.category ===
+                              category.name,
+                          ).length
+
+                        const isDeleting =
+                          categoryDeletingId ===
+                          category.id
+
+                        return (
+                          <div
+                            className="admin-category-card"
+                            key={
+                              category.id
+                            }
+                          >
+                            <div className="admin-category-icon">
+                              <Tags
+                                size={20}
+                              />
+                            </div>
+
+                            <div className="admin-category-info">
+                              <strong>
+                                {
+                                  category.name
+                                }
+                              </strong>
+
+                              <span>
+                                {count}{' '}
+                                product
+                                {count === 1
+                                  ? ''
+                                  : 's'}
+                              </span>
+                            </div>
+
+                            <div className="admin-category-actions">
+                              <button
+                                className="edit-btn"
+                                onClick={() =>
+                                  startEditCategory(
+                                    category,
+                                  )
+                                }
+                                disabled={
+                                  isDeleting ||
+                                  categorySaving
+                                }
+                                title="Edit category"
+                              >
+                                <Pencil
+                                  size={16}
+                                />
+                              </button>
+
+                              <button
+                                className="delete-btn"
+                                onClick={() =>
+                                  handleDeleteCategory(
+                                    category,
+                                  )
+                                }
+                                disabled={
+                                  isDeleting ||
+                                  categorySaving
+                                }
+                                title="Delete category"
+                              >
+                                {isDeleting ? (
+                                  <span className="admin-action-loading">
+                                    ...
+                                  </span>
+                                ) : (
+                                  <Trash2
+                                    size={16}
+                                  />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      },
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -1035,12 +1657,14 @@ export default function Admin() {
 
             <div className="admin-empty">
               <BarChart3 size={42} />
+
               <h3>
                 Analytics module coming next
               </h3>
+
               <p>
-                We will connect product and affiliate
-                analytics here later.
+                We will connect product and
+                affiliate analytics here later.
               </p>
             </div>
           </section>
@@ -1052,19 +1676,22 @@ export default function Admin() {
               <div>
                 <h1>Settings</h1>
                 <p>
-                  Manage your Picksy admin settings
+                  Manage your Picksy admin
+                  settings
                 </p>
               </div>
             </header>
 
             <div className="admin-empty">
               <Settings size={42} />
+
               <h3>
                 Settings module coming next
               </h3>
+
               <p>
-                Admin and website settings will be added
-                here.
+                Admin and website settings will
+                be added here.
               </p>
             </div>
           </section>
@@ -1073,7 +1700,16 @@ export default function Admin() {
 
       {showForm && (
         <ProductForm
-          product={editingProduct ?? emptyProduct}
+          product={
+            editingProduct ??
+            {
+              ...emptyProduct,
+              category:
+                categories[0]?.name ||
+                emptyProduct.category,
+            }
+          }
+          categories={categories}
           onClose={() => {
             if (saving) return
 
@@ -1101,7 +1737,8 @@ function ProductTableRow({
   onDelete,
   deletingId,
 }: ProductTableRowProps) {
-  const isDeleting = deletingId === product.id
+  const isDeleting =
+    deletingId === product.id
 
   return (
     <tr>
@@ -1183,7 +1820,9 @@ function ProductTableRow({
 
           <button
             className="delete-btn"
-            onClick={() => onDelete(product.id)}
+            onClick={() =>
+              onDelete(product.id)
+            }
             title="Delete product"
             disabled={isDeleting}
           >
@@ -1203,6 +1842,7 @@ function ProductTableRow({
 
 type ProductFormProps = {
   product: Product
+  categories: Category[]
   onClose: () => void
   onSave: (product: Product) => Promise<void>
   saving: boolean
@@ -1210,16 +1850,20 @@ type ProductFormProps = {
 
 function ProductForm({
   product,
+  categories,
   onClose,
   onSave,
   saving,
 }: ProductFormProps) {
-  const [form, setForm] = useState<Product>({
-    ...product,
-    published: product.published ?? true,
-  })
+  const [form, setForm] =
+    useState<Product>({
+      ...product,
+      published:
+        product.published ?? true,
+    })
 
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading] =
+    useState(false)
 
   function updateField<K extends keyof Product>(
     key: K,
@@ -1239,12 +1883,13 @@ function ProductForm({
 
     const fileName = `products/${crypto.randomUUID()}.${extension}`
 
-    const { error } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
+    const { error } =
+      await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        })
 
     if (error) {
       console.error(error)
@@ -1258,11 +1903,15 @@ function ProductForm({
       return
     }
 
-    const { data } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(fileName)
+    const { data } =
+      supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName)
 
-    updateField('image', data.publicUrl)
+    updateField(
+      'image',
+      data.publicUrl,
+    )
 
     setUploading(false)
   }
@@ -1271,13 +1920,15 @@ function ProductForm({
     form.originalPrice > form.price &&
     form.originalPrice > 0
       ? Math.round(
-          ((form.originalPrice - form.price) /
+          ((form.originalPrice -
+            form.price) /
             form.originalPrice) *
             100,
         )
       : 0
 
-  const isBusy = uploading || saving
+  const isBusy =
+    uploading || saving
 
   return (
     <div className="admin-modal-backdrop">
@@ -1307,7 +1958,9 @@ function ProductForm({
         <div className="admin-form">
           <div className="admin-form-grid">
             <div className="admin-field full">
-              <label>Product Name</label>
+              <label>
+                Product Name
+              </label>
 
               <input
                 value={form.name}
@@ -1323,14 +1976,17 @@ function ProductForm({
             </div>
 
             <div className="admin-field">
-              <label>Marketplace</label>
+              <label>
+                Marketplace
+              </label>
 
               <select
                 value={form.marketplace}
                 onChange={(e) =>
                   updateField(
                     'marketplace',
-                    e.target.value as Marketplace,
+                    e.target
+                      .value as Marketplace,
                   )
                 }
                 disabled={isBusy}
@@ -1338,9 +1994,11 @@ function ProductForm({
                 <option value="Amazon">
                   Amazon
                 </option>
+
                 <option value="Flipkart">
                   Flipkart
                 </option>
+
                 <option value="Meesho">
                   Meesho
                 </option>
@@ -1358,16 +2016,29 @@ function ProductForm({
                     e.target.value,
                   )
                 }
-                disabled={isBusy}
+                disabled={
+                  isBusy ||
+                  categories.length === 0
+                }
               >
-                {categories.map((category) => (
-                  <option
-                    key={category}
-                    value={category}
-                  >
-                    {category}
+                {categories.length === 0 ? (
+                  <option value="">
+                    No categories available
                   </option>
-                ))}
+                ) : (
+                  categories.map(
+                    (category) => (
+                      <option
+                        key={category.id}
+                        value={
+                          category.name
+                        }
+                      >
+                        {category.name}
+                      </option>
+                    ),
+                  )
+                )}
               </select>
             </div>
 
@@ -1381,7 +2052,9 @@ function ProductForm({
                 onChange={(e) =>
                   updateField(
                     'price',
-                    Number(e.target.value),
+                    Number(
+                      e.target.value,
+                    ),
                   )
                 }
                 disabled={isBusy}
@@ -1389,16 +2062,22 @@ function ProductForm({
             </div>
 
             <div className="admin-field">
-              <label>Original Price</label>
+              <label>
+                Original Price
+              </label>
 
               <input
                 type="number"
                 min="0"
-                value={form.originalPrice}
+                value={
+                  form.originalPrice
+                }
                 onChange={(e) =>
                   updateField(
                     'originalPrice',
-                    Number(e.target.value),
+                    Number(
+                      e.target.value,
+                    ),
                   )
                 }
                 disabled={isBusy}
@@ -1417,7 +2096,9 @@ function ProductForm({
                 onChange={(e) =>
                   updateField(
                     'rating',
-                    Number(e.target.value),
+                    Number(
+                      e.target.value,
+                    ),
                   )
                 }
                 disabled={isBusy}
@@ -1458,11 +2139,15 @@ function ProductForm({
             </div>
 
             <div className="admin-field full">
-              <label>Affiliate URL</label>
+              <label>
+                Affiliate URL
+              </label>
 
               <input
                 type="url"
-                value={form.affiliateUrl ?? ''}
+                value={
+                  form.affiliateUrl ?? ''
+                }
                 onChange={(e) =>
                   updateField(
                     'affiliateUrl',
@@ -1479,7 +2164,9 @@ function ProductForm({
 
               <textarea
                 rows={5}
-                value={form.description}
+                value={
+                  form.description
+                }
                 onChange={(e) =>
                   updateField(
                     'description',
@@ -1492,14 +2179,17 @@ function ProductForm({
             </div>
 
             <div className="admin-field full">
-              <label>Product Image</label>
+              <label>
+                Product Image
+              </label>
 
               <div className="admin-image-upload">
                 {form.image ? (
                   <img
                     src={form.image}
                     alt={
-                      form.name || 'Product'
+                      form.name ||
+                      'Product'
                     }
                   />
                 ) : (
@@ -1510,8 +2200,10 @@ function ProductForm({
                       <strong>
                         No image selected
                       </strong>
+
                       <small>
-                        Upload a product image
+                        Upload a product
+                        image
                       </small>
                     </div>
                   </div>
@@ -1540,7 +2232,9 @@ function ProductForm({
                         e.target.files?.[0]
 
                       if (file) {
-                        uploadImage(file)
+                        uploadImage(
+                          file,
+                        )
                       }
 
                       e.target.value = ''
@@ -1564,16 +2258,13 @@ function ProductForm({
             </div>
           )}
 
-          {/* =========================
-              PRODUCT VISIBILITY OPTIONS
-              ========================= */}
-
           <div className="admin-toggle-section">
             <ToggleOption
               title="Published"
               description="Visible on the public website"
               checked={
-                form.published ?? true
+                form.published ??
+                true
               }
               onChange={(checked) =>
                 updateField(
@@ -1588,7 +2279,8 @@ function ProductForm({
               title="Trending"
               description="Show in Trending Now"
               checked={
-                form.trending ?? false
+                form.trending ??
+                false
               }
               onChange={(checked) =>
                 updateField(
@@ -1618,7 +2310,8 @@ function ProductForm({
               title="Picksy Pick"
               description="Feature as a Picksy Pick"
               checked={
-                form.picksyPick ?? false
+                form.picksyPick ??
+                false
               }
               onChange={(checked) =>
                 updateField(
@@ -1641,8 +2334,13 @@ function ProductForm({
 
             <button
               className="admin-primary-btn"
-              onClick={() => onSave(form)}
-              disabled={isBusy}
+              onClick={() =>
+                onSave(form)
+              }
+              disabled={
+                isBusy ||
+                categories.length === 0
+              }
             >
               <CheckCircle2 size={17} />
 
@@ -1667,7 +2365,9 @@ type ToggleOptionProps = {
   title: string
   description: string
   checked: boolean
-  onChange: (checked: boolean) => void
+  onChange: (
+    checked: boolean,
+  ) => void
   disabled?: boolean
 }
 
