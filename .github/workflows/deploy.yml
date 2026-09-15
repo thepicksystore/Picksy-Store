@@ -1,26 +1,75 @@
-- name: Install
-  run: npm ci
+name: Deploy Picksy to GitHub Pages
 
-# 👇 AA AHIYA ADD KARVU
-- name: Check Supabase secrets
-  env:
-    VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-    VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-  run: |
-    if [ -z "$VITE_SUPABASE_URL" ]; then
-      echo "ERROR: VITE_SUPABASE_URL is EMPTY"
-      exit 1
-    fi
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
 
-    if [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
-      echo "ERROR: VITE_SUPABASE_PUBLISHABLE_KEY is EMPTY"
-      exit 1
-    fi
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
-    echo "SUCCESS: Both Supabase secrets are available."
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
-- name: Build
-  env:
-    VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-    VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-  run: npm run build
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Check Supabase secrets
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ]; then
+            echo "ERROR: VITE_SUPABASE_URL is EMPTY"
+            exit 1
+          fi
+
+          if [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "ERROR: VITE_SUPABASE_PUBLISHABLE_KEY is EMPTY"
+            exit 1
+          fi
+
+          echo "SUCCESS: Both Supabase secrets are available."
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
