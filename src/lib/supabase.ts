@@ -7,10 +7,6 @@ const supabaseUrl =
 const supabasePublishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
-if (!supabasePublishableKey) {
-  throw new Error('Supabase publishable key is missing.')
-}
-
 export const supabase = createClient(
   supabaseUrl,
   supabasePublishableKey
