@@ -1,3 +1,5 @@
+// src/pages/Admin.tsx
+
 import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3,
@@ -48,13 +50,6 @@ type DbProduct = {
   is_new: boolean
   picksy_pick: boolean
   published: boolean
-}
-
-type NoticeType = 'success' | 'error'
-
-type Notice = {
-  type: NoticeType
-  message: string
 }
 
 const emptyProduct: Product = {
@@ -138,7 +133,8 @@ export default function Admin() {
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
-  const [marketplaceFilter, setMarketplaceFilter] = useState('All')
+  const [marketplaceFilter, setMarketplaceFilter] =
+    useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [quickFilter, setQuickFilter] = useState('All')
 
@@ -151,25 +147,31 @@ export default function Admin() {
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const [notice, setNotice] = useState<Notice | null>(null)
+  const [notice, setNotice] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
+
   const [saving, setSaving] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] =
+    useState<string | null>(null)
 
   const [categoryName, setCategoryName] = useState('')
   const [editingCategoryId, setEditingCategoryId] =
     useState<string | null>(null)
-  const [categorySaving, setCategorySaving] = useState(false)
+  const [categorySaving, setCategorySaving] =
+    useState(false)
   const [categoryDeletingId, setCategoryDeletingId] =
     useState<string | null>(null)
 
+  const [showCategoryForm, setShowCategoryForm] =
+    useState(false)
+
   function showNotice(
-    type: NoticeType,
+    type: 'success' | 'error',
     message: string,
   ) {
-    setNotice({
-      type,
-      message,
-    })
+    setNotice({ type, message })
 
     window.setTimeout(() => {
       setNotice(null)
@@ -284,6 +286,9 @@ export default function Admin() {
     setActiveSection('overview')
     setShowForm(false)
     setEditingProduct(null)
+    setShowCategoryForm(false)
+    setEditingCategoryId(null)
+    setCategoryName('')
   }
 
   async function handleDelete(id: string) {
@@ -466,6 +471,24 @@ export default function Admin() {
     )
   }
 
+  function startAddCategory() {
+    setEditingCategoryId(null)
+    setCategoryName('')
+    setShowCategoryForm(true)
+  }
+
+  function startEditCategory(category: Category) {
+    setEditingCategoryId(category.id)
+    setCategoryName(category.name)
+    setShowCategoryForm(true)
+  }
+
+  function cancelEditCategory() {
+    setEditingCategoryId(null)
+    setCategoryName('')
+    setShowCategoryForm(false)
+  }
+
   async function handleAddCategory() {
     const trimmedName = categoryName.trim()
 
@@ -474,7 +497,6 @@ export default function Admin() {
         'error',
         'Please enter category name.',
       )
-
       return
     }
 
@@ -485,7 +507,6 @@ export default function Admin() {
         'error',
         'Please enter a valid category name.',
       )
-
       return
     }
 
@@ -500,7 +521,6 @@ export default function Admin() {
         'error',
         'This category already exists.',
       )
-
       return
     }
 
@@ -531,8 +551,7 @@ export default function Admin() {
 
     setCategories((current) =>
       [...current, data as Category].sort(
-        (a, b) =>
-          a.name.localeCompare(b.name),
+        (a, b) => a.name.localeCompare(b.name),
       ),
     )
 
@@ -545,16 +564,6 @@ export default function Admin() {
     )
   }
 
-  function startEditCategory(category: Category) {
-    setEditingCategoryId(category.id)
-    setCategoryName(category.name)
-  }
-
-  function cancelEditCategory() {
-    setEditingCategoryId(null)
-    setCategoryName('')
-  }
-
   async function handleUpdateCategory() {
     if (!editingCategoryId) return
 
@@ -565,7 +574,6 @@ export default function Admin() {
         'error',
         'Please enter category name.',
       )
-
       return
     }
 
@@ -576,7 +584,6 @@ export default function Admin() {
         'error',
         'Please enter a valid category name.',
       )
-
       return
     }
 
@@ -599,7 +606,6 @@ export default function Admin() {
         'error',
         'This category already exists.',
       )
-
       return
     }
 
@@ -635,8 +641,7 @@ export default function Admin() {
           .from('products')
           .update({
             category: trimmedName,
-            updated_at:
-              new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           })
           .eq('category', oldCategory.name)
 
@@ -693,10 +698,6 @@ export default function Admin() {
   async function handleDeleteCategory(
     category: Category,
   ) {
-    /*
-     * Check the database directly instead of relying
-     * only on the products currently loaded in memory.
-     */
     const { count, error: countError } =
       await supabase
         .from('products')
@@ -870,6 +871,12 @@ export default function Admin() {
     section: AdminSection,
   ) {
     setActiveSection(section)
+
+    if (section !== 'categories') {
+      setShowCategoryForm(false)
+      setEditingCategoryId(null)
+      setCategoryName('')
+    }
   }
 
   if (loading) {
@@ -1155,9 +1162,7 @@ export default function Admin() {
                       start building Picksy.
                     </p>
 
-                    <button
-                      onClick={openAddForm}
-                    >
+                    <button onClick={openAddForm}>
                       <Plus size={16} />
                       Add Product
                     </button>
@@ -1262,6 +1267,7 @@ export default function Admin() {
               <div className="admin-section-header">
                 <div>
                   <h2>All Products</h2>
+
                   <p>
                     Showing{' '}
                     {filteredProducts.length}{' '}
@@ -1481,103 +1487,122 @@ export default function Admin() {
                   Manage product categories
                 </p>
               </div>
+
+              {/* ONLY ONE ADD CATEGORY BUTTON */}
+              <button
+                className="admin-add-btn"
+                onClick={startAddCategory}
+                disabled={categorySaving}
+              >
+                <Plus size={18} />
+                Add Category
+              </button>
             </header>
 
             <div className="admin-category-manager">
-              <div className="admin-category-form">
-                <div>
-                  <h2>
-                    {editingCategoryId
-                      ? 'Edit Category'
-                      : 'Add Category'}
-                  </h2>
+              {showCategoryForm && (
+                <div className="admin-category-form">
+                  <div>
+                    <h2>
+                      {editingCategoryId
+                        ? 'Edit Category'
+                        : 'Add Category'}
+                    </h2>
 
-                  <p>
-                    {editingCategoryId
-                      ? 'Update the category name.'
-                      : 'Create a new product category.'}
-                  </p>
-                </div>
+                    <p>
+                      {editingCategoryId
+                        ? 'Update the category name.'
+                        : 'Create a new product category.'}
+                    </p>
+                  </div>
 
-                <div className="admin-category-input-row">
-                  <input
-                    type="text"
-                    value={categoryName}
-                    onChange={(e) =>
-                      setCategoryName(
-                        e.target.value,
-                      )
-                    }
-                    placeholder="e.g. Home Decor"
-                    disabled={categorySaving}
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === 'Enter'
-                      ) {
-                        e.preventDefault()
+                  <div className="admin-category-input-row">
+                    <input
+                      type="text"
+                      value={categoryName}
+                      onChange={(e) =>
+                        setCategoryName(
+                          e.target.value,
+                        )
+                      }
+                      placeholder="e.g. Home Decor"
+                      disabled={categorySaving}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === 'Enter'
+                        ) {
+                          e.preventDefault()
+
+                          if (
+                            editingCategoryId
+                          ) {
+                            handleUpdateCategory()
+                          } else {
+                            handleAddCategory()
+                          }
+                        }
 
                         if (
-                          editingCategoryId
+                          e.key === 'Escape'
                         ) {
-                          handleUpdateCategory()
-                        } else {
-                          handleAddCategory()
+                          cancelEditCategory()
                         }
-                      }
-                    }}
-                  />
+                      }}
+                    />
 
-                  {editingCategoryId ? (
-                    <>
+                    {editingCategoryId ? (
+                      <>
+                        <button
+                          className="admin-primary-btn"
+                          onClick={
+                            handleUpdateCategory
+                          }
+                          disabled={
+                            categorySaving
+                          }
+                        >
+                          <CheckCircle2
+                            size={17}
+                          />
+
+                          {categorySaving
+                            ? 'Updating...'
+                            : 'Save Changes'}
+                        </button>
+
+                        <button
+                          className="admin-secondary-btn"
+                          onClick={
+                            cancelEditCategory
+                          }
+                          disabled={
+                            categorySaving
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
                       <button
                         className="admin-primary-btn"
                         onClick={
-                          handleUpdateCategory
+                          handleAddCategory
                         }
                         disabled={
                           categorySaving
                         }
                       >
-                        <CheckCircle2
-                          size={17}
-                        />
+                        <Plus size={17} />
 
                         {categorySaving
-                          ? 'Updating...'
-                          : 'Update'}
+                          ? 'Adding...'
+                          : 'Add Category'}
                       </button>
-
-                      <button
-                        className="admin-secondary-btn"
-                        onClick={
-                          cancelEditCategory
-                        }
-                        disabled={
-                          categorySaving
-                        }
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="admin-primary-btn"
-                      onClick={
-                        handleAddCategory
-                      }
-                      disabled={
-                        categorySaving
-                      }
-                    >
-                      <Plus size={17} />
-
-                      {categorySaving
-                        ? 'Adding...'
-                        : 'Add Category'}
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="admin-category-list">
                 <div className="admin-category-list-header">
