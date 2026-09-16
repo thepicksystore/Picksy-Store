@@ -52,6 +52,8 @@ type DbProduct = {
   published: boolean
 }
 
+const ITEMS_PER_PAGE = 10
+
 const emptyProduct: Product = {
   id: '',
   name: '',
@@ -137,6 +139,9 @@ export default function Admin() {
     useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [quickFilter, setQuickFilter] = useState('All')
+
+  const [overviewPage, setOverviewPage] = useState(1)
+  const [productsPage, setProductsPage] = useState(1)
 
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] =
@@ -289,6 +294,8 @@ export default function Admin() {
     setShowCategoryForm(false)
     setEditingCategoryId(null)
     setCategoryName('')
+    setOverviewPage(1)
+    setProductsPage(1)
   }
 
   async function handleDelete(id: string) {
@@ -460,6 +467,9 @@ export default function Admin() {
       dbToProduct(data),
       ...current,
     ])
+
+    setOverviewPage(1)
+    setProductsPage(1)
 
     setShowForm(false)
     setEditingProduct(null)
@@ -850,7 +860,73 @@ export default function Admin() {
     ).length,
   }
 
-  const recentProducts = products.slice(0, 5)
+  const overviewTotalPages = Math.max(
+    1,
+    Math.ceil(
+      products.length / ITEMS_PER_PAGE,
+    ),
+  )
+
+  const productsTotalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredProducts.length /
+        ITEMS_PER_PAGE,
+    ),
+  )
+
+  const overviewProducts = useMemo(() => {
+    const start =
+      (overviewPage - 1) *
+      ITEMS_PER_PAGE
+
+    return products.slice(
+      start,
+      start + ITEMS_PER_PAGE,
+    )
+  }, [products, overviewPage])
+
+  const paginatedProducts = useMemo(() => {
+    const start =
+      (productsPage - 1) *
+      ITEMS_PER_PAGE
+
+    return filteredProducts.slice(
+      start,
+      start + ITEMS_PER_PAGE,
+    )
+  }, [
+    filteredProducts,
+    productsPage,
+  ])
+
+  useEffect(() => {
+    if (overviewPage > overviewTotalPages) {
+      setOverviewPage(overviewTotalPages)
+    }
+  }, [
+    overviewPage,
+    overviewTotalPages,
+  ])
+
+  useEffect(() => {
+    if (productsPage > productsTotalPages) {
+      setProductsPage(productsTotalPages)
+    }
+  }, [
+    productsPage,
+    productsTotalPages,
+  ])
+
+  useEffect(() => {
+    setProductsPage(1)
+  }, [
+    search,
+    categoryFilter,
+    marketplaceFilter,
+    statusFilter,
+    quickFilter,
+  ])
 
   function clearFilters() {
     setSearch('')
@@ -858,6 +934,7 @@ export default function Admin() {
     setMarketplaceFilter('All')
     setStatusFilter('All')
     setQuickFilter('All')
+    setProductsPage(1)
   }
 
   const hasFilters =
@@ -1133,8 +1210,9 @@ export default function Admin() {
                 <div>
                   <h2>Recent Products</h2>
                   <p>
-                    Your latest products added to
-                    Picksy
+                    Showing{' '}
+                    {overviewProducts.length} of{' '}
+                    {products.length} products
                   </p>
                 </div>
 
@@ -1151,7 +1229,7 @@ export default function Admin() {
               </div>
 
               <div className="admin-table-wrapper">
-                {recentProducts.length === 0 ? (
+                {products.length === 0 ? (
                   <div className="admin-empty">
                     <Package size={38} />
 
@@ -1168,39 +1246,51 @@ export default function Admin() {
                     </button>
                   </div>
                 ) : (
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Marketplace</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Tags</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
+                  <>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Marketplace</th>
+                          <th>Category</th>
+                          <th>Price</th>
+                          <th>Status</th>
+                          <th>Tags</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
 
-                    <tbody>
-                      {recentProducts.map(
-                        (product) => (
-                          <ProductTableRow
-                            key={product.id}
-                            product={product}
-                            onEdit={
-                              openEditForm
-                            }
-                            onDelete={
-                              handleDelete
-                            }
-                            deletingId={
-                              deletingId
-                            }
-                          />
-                        ),
-                      )}
-                    </tbody>
-                  </table>
+                      <tbody>
+                        {overviewProducts.map(
+                          (product) => (
+                            <ProductTableRow
+                              key={product.id}
+                              product={product}
+                              onEdit={
+                                openEditForm
+                              }
+                              onDelete={
+                                handleDelete
+                              }
+                              deletingId={
+                                deletingId
+                              }
+                            />
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+
+                    <Pagination
+                      currentPage={overviewPage}
+                      totalPages={
+                        overviewTotalPages
+                      }
+                      onPageChange={
+                        setOverviewPage
+                      }
+                    />
+                  </>
                 )}
               </div>
             </section>
@@ -1270,8 +1360,20 @@ export default function Admin() {
 
                   <p>
                     Showing{' '}
+                    {filteredProducts.length ===
+                    0
+                      ? 0
+                      : (productsPage - 1) *
+                          ITEMS_PER_PAGE +
+                        1}{' '}
+                    -{' '}
+                    {Math.min(
+                      productsPage *
+                        ITEMS_PER_PAGE,
+                      filteredProducts.length,
+                    )}{' '}
+                    of{' '}
                     {filteredProducts.length}{' '}
-                    of {products.length}{' '}
                     products
                   </p>
                 </div>
@@ -1439,39 +1541,51 @@ export default function Admin() {
                     )}
                   </div>
                 ) : (
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Marketplace</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Tags</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
+                  <>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Marketplace</th>
+                          <th>Category</th>
+                          <th>Price</th>
+                          <th>Status</th>
+                          <th>Tags</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
 
-                    <tbody>
-                      {filteredProducts.map(
-                        (product) => (
-                          <ProductTableRow
-                            key={product.id}
-                            product={product}
-                            onEdit={
-                              openEditForm
-                            }
-                            onDelete={
-                              handleDelete
-                            }
-                            deletingId={
-                              deletingId
-                            }
-                          />
-                        ),
-                      )}
-                    </tbody>
-                  </table>
+                      <tbody>
+                        {paginatedProducts.map(
+                          (product) => (
+                            <ProductTableRow
+                              key={product.id}
+                              product={product}
+                              onEdit={
+                                openEditForm
+                              }
+                              onDelete={
+                                handleDelete
+                              }
+                              deletingId={
+                                deletingId
+                              }
+                            />
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+
+                    <Pagination
+                      currentPage={productsPage}
+                      totalPages={
+                        productsTotalPages
+                      }
+                      onPageChange={
+                        setProductsPage
+                      }
+                    />
+                  </>
                 )}
               </div>
             </section>
@@ -1488,7 +1602,6 @@ export default function Admin() {
                 </p>
               </div>
 
-              {/* ONLY ONE ADD CATEGORY BUTTON */}
               <button
                 className="admin-add-btn"
                 onClick={startAddCategory}
@@ -1806,6 +1919,75 @@ export default function Admin() {
           saving={saving}
         />
       )}
+    </div>
+  )
+}
+
+type PaginationProps = {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}
+
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: PaginationProps) {
+  if (totalPages <= 1) {
+    return null
+  }
+
+  const pages: number[] = []
+
+  for (let page = 1; page <= totalPages; page++) {
+    pages.push(page)
+  }
+
+  return (
+    <div className="admin-pagination">
+      <button
+        type="button"
+        className="admin-pagination-btn"
+        disabled={currentPage === 1}
+        onClick={() =>
+          onPageChange(currentPage - 1)
+        }
+      >
+        Previous
+      </button>
+
+      <div className="admin-pagination-pages">
+        {pages.map((page) => (
+          <button
+            type="button"
+            key={page}
+            className={`admin-pagination-page ${
+              currentPage === page
+                ? 'active'
+                : ''
+            }`}
+            onClick={() =>
+              onPageChange(page)
+            }
+          >
+            {page}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        className="admin-pagination-btn"
+        disabled={
+          currentPage === totalPages
+        }
+        onClick={() =>
+          onPageChange(currentPage + 1)
+        }
+      >
+        Next
+      </button>
     </div>
   )
 }
