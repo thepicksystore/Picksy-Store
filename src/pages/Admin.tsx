@@ -1,5 +1,5 @@
-// src/pages/Admin.tsx
-
+import AdminLogin from '../components/AdminLogin'
+import AdminSettings from '../components/AdminSettings'
 import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3,
@@ -157,11 +157,6 @@ export default function Admin() {
   const [editingProduct, setEditingProduct] =
     useState<Product | null>(null)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
-
   const [notice, setNotice] = useState<{
     type: 'success' | 'error'
     message: string
@@ -310,29 +305,6 @@ export default function Admin() {
       loadAffiliateClicks()
     }
   }, [session, activeSection])
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-
-    setLoginError('')
-    setLoginLoading(true)
-
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-
-    if (error) {
-      setLoginError(error.message)
-      setLoginLoading(false)
-      return
-    }
-
-    setEmail('')
-    setPassword('')
-    setLoginLoading(false)
-  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -932,8 +904,6 @@ export default function Admin() {
     ).length,
   }
 
-  const recentProducts = products.slice(0, 5)
-
   const analyticsFilteredClicks = useMemo(() => {
     const now = new Date()
     const start = new Date(now)
@@ -984,7 +954,12 @@ export default function Admin() {
   }, [affiliateClicks, products])
 
   const analyticsChart = useMemo(() => {
-    const points: { key: string; label: string; clicks: number }[] = []
+    const points: {
+      key: string
+      label: string
+      clicks: number
+    }[] = []
+
     const now = new Date()
 
     if (analyticsView === 'day') {
@@ -992,45 +967,75 @@ export default function Admin() {
         const date = new Date(now)
         date.setHours(hour, 0, 0, 0)
 
-        const clicks = analyticsFilteredClicks.filter((click) => {
-          const clicked = new Date(click.clicked_at)
-          return (
-            clicked.getFullYear() === date.getFullYear() &&
-            clicked.getMonth() === date.getMonth() &&
-            clicked.getDate() === date.getDate() &&
-            clicked.getHours() === hour
-          )
-        }).length
+        const clicks = analyticsFilteredClicks.filter(
+          (click) => {
+            const clicked = new Date(
+              click.clicked_at,
+            )
+
+            return (
+              clicked.getFullYear() ===
+                date.getFullYear() &&
+              clicked.getMonth() ===
+                date.getMonth() &&
+              clicked.getDate() ===
+                date.getDate() &&
+              clicked.getHours() === hour
+            )
+          },
+        ).length
 
         points.push({
           key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}`,
-          label: date.toLocaleTimeString('en-IN', { hour: 'numeric' }),
+          label: date.toLocaleTimeString(
+            'en-IN',
+            { hour: 'numeric' },
+          ),
           clicks,
         })
       }
     } else {
-      const days = analyticsView === 'week' ? 7 : 30
+      const days =
+        analyticsView === 'week' ? 7 : 30
 
-      for (let offset = days - 1; offset >= 0; offset -= 1) {
+      for (
+        let offset = days - 1;
+        offset >= 0;
+        offset -= 1
+      ) {
         const date = new Date(now)
         date.setHours(0, 0, 0, 0)
-        date.setDate(date.getDate() - offset)
+        date.setDate(
+          date.getDate() - offset,
+        )
 
-        const clicks = analyticsFilteredClicks.filter((click) => {
-          const clicked = new Date(click.clicked_at)
-          return (
-            clicked.getFullYear() === date.getFullYear() &&
-            clicked.getMonth() === date.getMonth() &&
-            clicked.getDate() === date.getDate()
-          )
-        }).length
+        const clicks =
+          analyticsFilteredClicks.filter(
+            (click) => {
+              const clicked = new Date(
+                click.clicked_at,
+              )
+
+              return (
+                clicked.getFullYear() ===
+                  date.getFullYear() &&
+                clicked.getMonth() ===
+                  date.getMonth() &&
+                clicked.getDate() ===
+                  date.getDate()
+              )
+            },
+          ).length
 
         points.push({
           key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
-          label: date.toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-          }),
+          label: date.toLocaleDateString(
+            'en-IN',
+            {
+              day: 'numeric',
+              month: 'short',
+            },
+          ),
           clicks,
         })
       }
@@ -1041,47 +1046,74 @@ export default function Admin() {
 
   const analyticsMaxClicks = Math.max(
     1,
-    ...analyticsChart.map((point) => point.clicks),
+    ...analyticsChart.map(
+      (point) => point.clicks,
+    ),
   )
 
   const marketplaceBreakdown = useMemo(() => {
     const counts = new Map<string, number>()
 
-    analyticsFilteredClicks.forEach((click) => {
-      const marketplace = click.marketplace || 'Unknown'
-      counts.set(marketplace, (counts.get(marketplace) || 0) + 1)
-    })
+    analyticsFilteredClicks.forEach(
+      (click) => {
+        const marketplace =
+          click.marketplace || 'Unknown'
 
-    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+        counts.set(
+          marketplace,
+          (counts.get(marketplace) || 0) + 1,
+        )
+      },
+    )
+
+    return Array.from(
+      counts.entries(),
+    ).sort((a, b) => b[1] - a[1])
   }, [analyticsFilteredClicks])
 
   const deviceBreakdown = useMemo(() => {
     const counts = new Map<string, number>()
 
-    analyticsFilteredClicks.forEach((click) => {
-      const device = click.device_type || 'Unknown'
-      counts.set(device, (counts.get(device) || 0) + 1)
-    })
+    analyticsFilteredClicks.forEach(
+      (click) => {
+        const device =
+          click.device_type || 'Unknown'
 
-    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+        counts.set(
+          device,
+          (counts.get(device) || 0) + 1,
+        )
+      },
+    )
+
+    return Array.from(
+      counts.entries(),
+    ).sort((a, b) => b[1] - a[1])
   }, [analyticsFilteredClicks])
 
   const topClickedProducts = useMemo(() => {
     const counts = new Map<string, number>()
 
-    analyticsFilteredClicks.forEach((click) => {
-      if (!click.product_id) return
-      counts.set(
-        click.product_id,
-        (counts.get(click.product_id) || 0) + 1,
-      )
-    })
+    analyticsFilteredClicks.forEach(
+      (click) => {
+        if (!click.product_id) return
 
-    return Array.from(counts.entries())
+        counts.set(
+          click.product_id,
+          (counts.get(click.product_id) || 0) + 1,
+        )
+      },
+    )
+
+    return Array.from(
+      counts.entries(),
+    )
       .map(([productId, clicks]) => ({
         productId,
         clicks,
-        product: products.find((item) => item.id === productId),
+        product: products.find(
+          (item) => item.id === productId,
+        ),
       }))
       .sort((a, b) => b.clicks - a.clicks)
       .slice(0, 10)
@@ -1153,66 +1185,7 @@ export default function Admin() {
   }
 
   if (!session) {
-    return (
-      <div className="admin-login-page">
-        <form
-          className="admin-login-card"
-          onSubmit={handleLogin}
-        >
-          <div className="admin-login-icon">
-            <LayoutDashboard size={28} />
-          </div>
-
-          <h1>Picksy Admin</h1>
-
-          <p>
-            Sign in to manage your products.
-          </p>
-
-          <label>Email</label>
-
-          <input
-            type="email"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            placeholder="admin@example.com"
-            required
-            disabled={loginLoading}
-          />
-
-          <label>Password</label>
-
-          <input
-            type="password"
-            value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            placeholder="••••••••"
-            required
-            disabled={loginLoading}
-          />
-
-          {loginError && (
-            <div className="admin-error">
-              {loginError}
-            </div>
-          )}
-
-          <button
-            className="admin-primary-btn"
-            type="submit"
-            disabled={loginLoading}
-          >
-            {loginLoading
-              ? 'Signing in...'
-              : 'Login'}
-          </button>
-        </form>
-      </div>
-    )
+    return <AdminLogin />
   }
 
   return (
@@ -1768,7 +1741,6 @@ export default function Admin() {
                 </p>
               </div>
 
-              {/* ONLY ONE ADD CATEGORY BUTTON */}
               <button
                 className="admin-add-btn"
                 onClick={startAddCategory}
@@ -2016,7 +1988,10 @@ export default function Admin() {
             <header className="admin-topbar">
               <div>
                 <h1>Analytics</h1>
-                <p>Track your Picksy affiliate performance</p>
+                <p>
+                  Track your Picksy affiliate
+                  performance
+                </p>
               </div>
 
               <div
@@ -2040,9 +2015,10 @@ export default function Admin() {
                   <RefreshCw
                     size={15}
                     style={{
-                      animation: analyticsLoading
-                        ? 'admin-spin 1s linear infinite'
-                        : undefined,
+                      animation:
+                        analyticsLoading
+                          ? 'admin-spin 1s linear infinite'
+                          : undefined,
                     }}
                   />
                   Refresh
@@ -2053,32 +2029,44 @@ export default function Admin() {
             <section className="admin-stats">
               <div className="admin-stat-card">
                 <span>Affiliate Clicks</span>
-                <strong>{analyticsStats.totalClicks}</strong>
+                <strong>
+                  {analyticsStats.totalClicks}
+                </strong>
               </div>
 
               <div className="admin-stat-card">
                 <span>Today</span>
-                <strong>{analyticsStats.todayClicks}</strong>
+                <strong>
+                  {analyticsStats.todayClicks}
+                </strong>
               </div>
 
               <div className="admin-stat-card">
                 <span>Last 7 Days</span>
-                <strong>{analyticsStats.last7DaysClicks}</strong>
+                <strong>
+                  {analyticsStats.last7DaysClicks}
+                </strong>
               </div>
 
               <div className="admin-stat-card">
                 <span>Last 30 Days</span>
-                <strong>{analyticsStats.last30DaysClicks}</strong>
+                <strong>
+                  {analyticsStats.last30DaysClicks}
+                </strong>
               </div>
 
               <div className="admin-stat-card">
                 <span>Products</span>
-                <strong>{products.length}</strong>
+                <strong>
+                  {products.length}
+                </strong>
               </div>
 
               <div className="admin-stat-card">
                 <span>Affiliate Links</span>
-                <strong>{analyticsStats.affiliateLinks}</strong>
+                <strong>
+                  {analyticsStats.affiliateLinks}
+                </strong>
               </div>
             </section>
 
@@ -2093,7 +2081,13 @@ export default function Admin() {
               >
                 <div>
                   <h2>Click Activity</h2>
-                  <p>Affiliate clicks by {analyticsView === 'day' ? 'hour' : 'day'}</p>
+
+                  <p>
+                    Affiliate clicks by{' '}
+                    {analyticsView === 'day'
+                      ? 'hour'
+                      : 'day'}
+                  </p>
                 </div>
 
                 <AnalyticsPeriodTabs
@@ -2104,104 +2098,170 @@ export default function Admin() {
 
               <div
                 style={{
-                  padding: '28px 18px 18px',
+                  padding:
+                    '28px 18px 18px',
                   overflowX: 'auto',
                 }}
               >
                 {analyticsLoading ? (
-                  <div className="admin-empty" style={{ minHeight: 220 }}>
+                  <div
+                    className="admin-empty"
+                    style={{ minHeight: 220 }}
+                  >
                     <BarChart3 size={34} />
-                    <p>Loading click activity...</p>
+
+                    <p>
+                      Loading click activity...
+                    </p>
                   </div>
-                ) : analyticsFilteredClicks.length === 0 ? (
-                  <div className="admin-empty" style={{ minHeight: 220 }}>
-                    <MousePointerClick size={36} />
-                    <h3>No clicks in {analyticsRangeLabel.toLowerCase()}</h3>
-                    <p>Affiliate clicks will appear here automatically.</p>
+                ) : analyticsFilteredClicks.length ===
+                  0 ? (
+                  <div
+                    className="admin-empty"
+                    style={{ minHeight: 220 }}
+                  >
+                    <MousePointerClick
+                      size={36}
+                    />
+
+                    <h3>
+                      No clicks in{' '}
+                      {analyticsRangeLabel.toLowerCase()}
+                    </h3>
+
+                    <p>
+                      Affiliate clicks will
+                      appear here automatically.
+                    </p>
                   </div>
                 ) : (
                   <div
                     style={{
-                      minWidth: analyticsView === 'day' ? 760 : analyticsView === 'month' ? 900 : 620,
+                      minWidth:
+                        analyticsView ===
+                        'day'
+                          ? 760
+                          : analyticsView ===
+                              'month'
+                            ? 900
+                            : 620,
                     }}
                   >
                     <div
                       style={{
                         height: 260,
                         display: 'flex',
-                        alignItems: 'flex-end',
-                        gap: analyticsView === 'month' ? 5 : 8,
+                        alignItems:
+                          'flex-end',
+                        gap:
+                          analyticsView ===
+                          'month'
+                            ? 5
+                            : 8,
                         padding: '0 6px',
-                        borderBottom: '1px solid #e5e7eb',
+                        borderBottom:
+                          '1px solid #e5e7eb',
                       }}
                     >
-                      {analyticsChart.map((point) => {
-                        const height =
-                          point.clicks === 0
-                            ? 4
-                            : Math.max(
-                                10,
-                                (point.clicks / analyticsMaxClicks) * 220,
-                              )
+                      {analyticsChart.map(
+                        (point) => {
+                          const height =
+                            point.clicks ===
+                            0
+                              ? 4
+                              : Math.max(
+                                  10,
+                                  (point.clicks /
+                                    analyticsMaxClicks) *
+                                    220,
+                                )
 
-                        return (
-                          <div
-                            key={point.key}
-                            style={{
-                              flex: 1,
-                              minWidth: analyticsView === 'month' ? 12 : 22,
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'flex-end',
-                              gap: 7,
-                            }}
-                          >
-                            {point.clicks > 0 && (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: '#111827',
-                                }}
-                              >
-                                {point.clicks}
-                              </span>
-                            )}
-
+                          return (
                             <div
-                              title={`${point.label}: ${point.clicks} click${point.clicks === 1 ? '' : 's'}`}
+                              key={
+                                point.key
+                              }
                               style={{
-                                width: '100%',
-                                maxWidth: analyticsView === 'month' ? 20 : 34,
-                                height,
-                                minHeight: 4,
-                                borderRadius: '6px 6px 2px 2px',
-                                background:
-                                  point.clicks > 0
-                                    ? 'linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%)'
-                                    : '#e5e7eb',
-                              }}
-                            />
-
-                            <span
-                              style={{
-                                fontSize: 10,
-                                color: '#6b7280',
-                                whiteSpace: 'nowrap',
-                                transform:
-                                  analyticsView === 'month'
-                                    ? 'rotate(-45deg) translate(-4px, 7px)'
-                                    : undefined,
-                                transformOrigin: 'center',
+                                flex: 1,
+                                minWidth:
+                                  analyticsView ===
+                                  'month'
+                                    ? 12
+                                    : 22,
+                                height: '100%',
+                                display:
+                                  'flex',
+                                flexDirection:
+                                  'column',
+                                alignItems:
+                                  'center',
+                                justifyContent:
+                                  'flex-end',
+                                gap: 7,
                               }}
                             >
-                              {point.label}
-                            </span>
-                          </div>
-                        )
-                      })}
+                              {point.clicks >
+                                0 && (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color:
+                                      '#111827',
+                                  }}
+                                >
+                                  {
+                                    point.clicks
+                                  }
+                                </span>
+                              )}
+
+                              <div
+                                title={`${point.label}: ${point.clicks} click${point.clicks === 1 ? '' : 's'}`}
+                                style={{
+                                  width:
+                                    '100%',
+                                  maxWidth:
+                                    analyticsView ===
+                                    'month'
+                                      ? 20
+                                      : 34,
+                                  height,
+                                  minHeight: 4,
+                                  borderRadius:
+                                    '6px 6px 2px 2px',
+                                  background:
+                                    point.clicks >
+                                    0
+                                      ? 'linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%)'
+                                      : '#e5e7eb',
+                                }}
+                              />
+
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  color:
+                                    '#6b7280',
+                                  whiteSpace:
+                                    'nowrap',
+                                  transform:
+                                    analyticsView ===
+                                    'month'
+                                      ? 'rotate(-45deg) translate(-4px, 7px)'
+                                      : undefined,
+                                  transformOrigin:
+                                    'center',
+                                }}
+                              >
+                                {
+                                  point.label
+                                }
+                              </span>
+                            </div>
+                          )
+                        },
+                      )}
                     </div>
                   </div>
                 )}
@@ -2211,98 +2271,167 @@ export default function Admin() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gridTemplateColumns:
+                  'repeat(2, minmax(0, 1fr))',
                 gap: 16,
                 marginTop: 16,
               }}
             >
-              <section className="admin-products-section" style={{ margin: 0 }}>
+              <section
+                className="admin-products-section"
+                style={{ margin: 0 }}
+              >
                 <div className="admin-section-header">
                   <div>
                     <h2>Marketplace</h2>
-                    <p>Clicks by marketplace</p>
+                    <p>
+                      Clicks by marketplace
+                    </p>
                   </div>
                 </div>
 
-                {marketplaceBreakdown.length === 0 ? (
-                  <div className="admin-empty" style={{ minHeight: 120 }}>
-                    <p>No marketplace data yet.</p>
+                {marketplaceBreakdown.length ===
+                0 ? (
+                  <div
+                    className="admin-empty"
+                    style={{ minHeight: 120 }}
+                  >
+                    <p>
+                      No marketplace data yet.
+                    </p>
                   </div>
                 ) : (
                   <div>
-                    {marketplaceBreakdown.map(([name, count]) => (
-                      <div
-                        key={name}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '14px 16px',
-                          borderTop: '1px solid #eef0f4',
-                        }}
-                      >
-                        <strong>{name}</strong>
-                        <strong>
-                          {count} {count === 1 ? 'click' : 'clicks'}
-                        </strong>
-                      </div>
-                    ))}
+                    {marketplaceBreakdown.map(
+                      ([name, count]) => (
+                        <div
+                          key={name}
+                          style={{
+                            display: 'flex',
+                            alignItems:
+                              'center',
+                            justifyContent:
+                              'space-between',
+                            padding:
+                              '14px 16px',
+                            borderTop:
+                              '1px solid #eef0f4',
+                          }}
+                        >
+                          <strong>
+                            {name}
+                          </strong>
+
+                          <strong>
+                            {count}{' '}
+                            {count === 1
+                              ? 'click'
+                              : 'clicks'}
+                          </strong>
+                        </div>
+                      ),
+                    )}
                   </div>
                 )}
               </section>
 
-              <section className="admin-products-section" style={{ margin: 0 }}>
+              <section
+                className="admin-products-section"
+                style={{ margin: 0 }}
+              >
                 <div className="admin-section-header">
                   <div>
                     <h2>Devices</h2>
-                    <p>Visitor device breakdown</p>
+                    <p>
+                      Visitor device breakdown
+                    </p>
                   </div>
                 </div>
 
-                {deviceBreakdown.length === 0 ? (
-                  <div className="admin-empty" style={{ minHeight: 120 }}>
-                    <p>No device data yet.</p>
+                {deviceBreakdown.length ===
+                0 ? (
+                  <div
+                    className="admin-empty"
+                    style={{ minHeight: 120 }}
+                  >
+                    <p>
+                      No device data yet.
+                    </p>
                   </div>
                 ) : (
                   <div>
-                    {deviceBreakdown.map(([name, count]) => (
-                      <div
-                        key={name}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '14px 16px',
-                          borderTop: '1px solid #eef0f4',
-                        }}
-                      >
-                        <strong style={{ textTransform: 'capitalize' }}>
-                          {name}
-                        </strong>
-                        <strong>
-                          {count} {count === 1 ? 'click' : 'clicks'}
-                        </strong>
-                      </div>
-                    ))}
+                    {deviceBreakdown.map(
+                      ([name, count]) => (
+                        <div
+                          key={name}
+                          style={{
+                            display: 'flex',
+                            alignItems:
+                              'center',
+                            justifyContent:
+                              'space-between',
+                            padding:
+                              '14px 16px',
+                            borderTop:
+                              '1px solid #eef0f4',
+                          }}
+                        >
+                          <strong
+                            style={{
+                              textTransform:
+                                'capitalize',
+                            }}
+                          >
+                            {name}
+                          </strong>
+
+                          <strong>
+                            {count}{' '}
+                            {count === 1
+                              ? 'click'
+                              : 'clicks'}
+                          </strong>
+                        </div>
+                      ),
+                    )}
                   </div>
                 )}
               </section>
             </div>
 
-            <section className="admin-products-section" style={{ marginTop: 16 }}>
+            <section
+              className="admin-products-section"
+              style={{ marginTop: 16 }}
+            >
               <div className="admin-section-header">
                 <div>
-                  <h2>Top Clicked Products</h2>
-                  <p>Products receiving the most affiliate clicks in {analyticsRangeLabel.toLowerCase()}</p>
+                  <h2>
+                    Top Clicked Products
+                  </h2>
+
+                  <p>
+                    Products receiving the
+                    most affiliate clicks in{' '}
+                    {analyticsRangeLabel.toLowerCase()}
+                  </p>
                 </div>
               </div>
 
               <div className="admin-table-wrapper">
-                {topClickedProducts.length === 0 ? (
+                {topClickedProducts.length ===
+                0 ? (
                   <div className="admin-empty">
                     <Package size={36} />
-                    <h3>No product clicks yet</h3>
-                    <p>Once visitors click an affiliate link, products will appear here.</p>
+
+                    <h3>
+                      No product clicks yet
+                    </h3>
+
+                    <p>
+                      Once visitors click an
+                      affiliate link, products
+                      will appear here.
+                    </p>
                   </div>
                 ) : (
                   <table className="admin-table">
@@ -2314,48 +2443,83 @@ export default function Admin() {
                         <th>Clicks</th>
                       </tr>
                     </thead>
+
                     <tbody>
-                      {topClickedProducts.map((item, index) => (
-                        <tr key={item.productId}>
-                          <td>{index + 1}</td>
-                          <td>
-                            <div className="admin-product-cell">
-                              <div className="admin-product-image">
-                                {item.product?.image ? (
-                                  <img
-                                    src={item.product.image}
-                                    alt={item.product.name}
-                                  />
-                                ) : (
-                                  <ImagePlus size={20} />
-                                )}
+                      {topClickedProducts.map(
+                        (item, index) => (
+                          <tr
+                            key={
+                              item.productId
+                            }
+                          >
+                            <td>
+                              {index + 1}
+                            </td>
+
+                            <td>
+                              <div className="admin-product-cell">
+                                <div className="admin-product-image">
+                                  {item.product
+                                    ?.image ? (
+                                    <img
+                                      src={
+                                        item
+                                          .product
+                                          .image
+                                      }
+                                      alt={
+                                        item
+                                          .product
+                                          .name
+                                      }
+                                    />
+                                  ) : (
+                                    <ImagePlus
+                                      size={20}
+                                    />
+                                  )}
+                                </div>
+
+                                <strong>
+                                  {item.product
+                                    ?.name ||
+                                    'Deleted product'}
+                                </strong>
                               </div>
+                            </td>
+
+                            <td>
+                              <span className="marketplace-badge">
+                                {item.product
+                                  ?.marketplace ||
+                                  analyticsFilteredClicks.find(
+                                    (click) =>
+                                      click.product_id ===
+                                      item.productId,
+                                  )
+                                    ?.marketplace ||
+                                  'Unknown'}
+                              </span>
+                            </td>
+
+                            <td>
                               <strong>
-                                {item.product?.name || 'Deleted product'}
+                                {item.clicks}
                               </strong>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="marketplace-badge">
-                              {item.product?.marketplace ||
-                                analyticsFilteredClicks.find(
-                                  (click) => click.product_id === item.productId,
-                                )?.marketplace ||
-                                'Unknown'}
-                            </span>
-                          </td>
-                          <td>
-                            <strong>{item.clicks}</strong>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        ),
+                      )}
                     </tbody>
                   </table>
                 )}
               </div>
             </section>
 
-            <section className="admin-products-section" style={{ marginTop: 16 }}>
+            <section
+              className="admin-products-section"
+              style={{ marginTop: 16 }}
+            >
               <div
                 className="admin-section-header"
                 style={{
@@ -2365,8 +2529,16 @@ export default function Admin() {
                 }}
               >
                 <div>
-                  <h2>Earnings Tracking</h2>
-                  <p>Same {analyticsRangeLabel.toLowerCase()} view for your affiliate performance.</p>
+                  <h2>
+                    Earnings Tracking
+                  </h2>
+
+                  <p>
+                    Same{' '}
+                    {analyticsRangeLabel.toLowerCase()}{' '}
+                    view for your affiliate
+                    performance.
+                  </p>
                 </div>
 
                 <AnalyticsPeriodTabs
@@ -2378,14 +2550,16 @@ export default function Admin() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gridTemplateColumns:
+                    'repeat(2, minmax(0, 1fr))',
                   gap: 16,
                   padding: 16,
                 }}
               >
                 <div
                   style={{
-                    border: '1px solid #e8eaf0',
+                    border:
+                      '1px solid #e8eaf0',
                     borderRadius: 14,
                     padding: 18,
                     background: '#fafafa',
@@ -2399,11 +2573,21 @@ export default function Admin() {
                       marginBottom: 8,
                     }}
                   >
-                    Clicks in selected period
+                    Clicks in selected
+                    period
                   </span>
-                  <strong style={{ fontSize: 28, color: '#111827' }}>
-                    {analyticsFilteredClicks.length}
+
+                  <strong
+                    style={{
+                      fontSize: 28,
+                      color: '#111827',
+                    }}
+                  >
+                    {
+                      analyticsFilteredClicks.length
+                    }
                   </strong>
+
                   <p
                     style={{
                       margin: '8px 0 0',
@@ -2417,7 +2601,8 @@ export default function Admin() {
 
                 <div
                   style={{
-                    border: '1px solid #e8eaf0',
+                    border:
+                      '1px solid #e8eaf0',
                     borderRadius: 14,
                     padding: 18,
                     background: '#fafafa',
@@ -2433,9 +2618,16 @@ export default function Admin() {
                   >
                     Actual earnings
                   </span>
-                  <strong style={{ fontSize: 24, color: '#111827' }}>
+
+                  <strong
+                    style={{
+                      fontSize: 24,
+                      color: '#111827',
+                    }}
+                  >
                     Not connected
                   </strong>
+
                   <p
                     style={{
                       margin: '8px 0 0',
@@ -2444,7 +2636,11 @@ export default function Admin() {
                       color: '#6b7280',
                     }}
                   >
-                    Actual commission data will come from marketplace affiliate reports or API data. Click counts are tracked by Picksy and are not treated as earnings.
+                    Actual commission data will
+                    come from marketplace affiliate
+                    reports or API data. Click
+                    counts are tracked by Picksy
+                    and are not treated as earnings.
                   </p>
                 </div>
               </div>
@@ -2453,30 +2649,10 @@ export default function Admin() {
         )}
 
         {activeSection === 'settings' && (
-          <section className="admin-products-section">
-            <header className="admin-topbar">
-              <div>
-                <h1>Settings</h1>
-                <p>
-                  Manage your Picksy admin
-                  settings
-                </p>
-              </div>
-            </header>
-
-            <div className="admin-empty">
-              <Settings size={42} />
-
-              <h3>
-                Settings module coming next
-              </h3>
-
-              <p>
-                Admin and website settings will
-                be added here.
-              </p>
-            </div>
-          </section>
+          <AdminSettings
+            session={session}
+            onLogout={handleLogout}
+          />
         )}
       </main>
 
@@ -2521,7 +2697,11 @@ function Pagination({
   const pages: number[] = []
 
   if (totalPages <= 7) {
-    for (let page = 1; page <= totalPages; page += 1) {
+    for (
+      let page = 1;
+      page <= totalPages;
+      page += 1
+    ) {
       pages.push(page)
     }
   } else {
@@ -2531,14 +2711,28 @@ function Pagination({
       pages.push(-1)
     }
 
-    const start = Math.max(2, currentPage - 1)
-    const end = Math.min(totalPages - 1, currentPage + 1)
+    const start = Math.max(
+      2,
+      currentPage - 1,
+    )
 
-    for (let page = start; page <= end; page += 1) {
+    const end = Math.min(
+      totalPages - 1,
+      currentPage + 1,
+    )
+
+    for (
+      let page = start;
+      page <= end;
+      page += 1
+    ) {
       pages.push(page)
     }
 
-    if (currentPage < totalPages - 3) {
+    if (
+      currentPage <
+      totalPages - 3
+    ) {
       pages.push(-2)
     }
 
@@ -2560,7 +2754,9 @@ function Pagination({
         <button
           type="button"
           className="admin-secondary-btn"
-          onClick={() => onPageChange(currentPage - 1)}
+          onClick={() =>
+            onPageChange(currentPage - 1)
+          }
           disabled={currentPage === 1}
         >
           Previous
@@ -2579,7 +2775,8 @@ function Pagination({
                 key={`ellipsis-${index}`}
                 style={{
                   padding: '0 4px',
-                  color: 'var(--text-muted, #777)',
+                  color:
+                    'var(--text-muted, #777)',
                 }}
               >
                 ...
@@ -2588,9 +2785,13 @@ function Pagination({
               <button
                 type="button"
                 key={page}
-                onClick={() => onPageChange(page)}
+                onClick={() =>
+                  onPageChange(page)
+                }
                 aria-current={
-                  currentPage === page ? 'page' : undefined
+                  currentPage === page
+                    ? 'page'
+                    : undefined
                 }
                 style={{
                   minWidth: '38px',
@@ -2601,9 +2802,13 @@ function Pagination({
                       ? '1px solid #222'
                       : '1px solid #e5e5e5',
                   background:
-                    currentPage === page ? '#222' : '#fff',
+                    currentPage === page
+                      ? '#222'
+                      : '#fff',
                   color:
-                    currentPage === page ? '#fff' : '#333',
+                    currentPage === page
+                      ? '#fff'
+                      : '#333',
                   cursor: 'pointer',
                   fontWeight: 600,
                 }}
@@ -2617,8 +2822,12 @@ function Pagination({
         <button
           type="button"
           className="admin-secondary-btn"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          onClick={() =>
+            onPageChange(currentPage + 1)
+          }
+          disabled={
+            currentPage === totalPages
+          }
         >
           Next
         </button>
@@ -2636,7 +2845,10 @@ function AnalyticsPeriodTabs({
   value,
   onChange,
 }: AnalyticsPeriodTabsProps) {
-  const options: { value: AnalyticsView; label: string }[] = [
+  const options: {
+    value: AnalyticsView
+    label: string
+  }[] = [
     { value: 'day', label: 'Day' },
     { value: 'week', label: 'Week' },
     { value: 'month', label: 'Month' },
@@ -2658,7 +2870,9 @@ function AnalyticsPeriodTabs({
         <button
           key={option.value}
           type="button"
-          onClick={() => onChange(option.value)}
+          onClick={() =>
+            onChange(option.value)
+          }
           style={{
             border: 'none',
             borderRadius: 7,
@@ -2667,10 +2881,15 @@ function AnalyticsPeriodTabs({
             fontWeight: 700,
             cursor: 'pointer',
             background:
-              value === option.value ? '#111827' : 'transparent',
+              value === option.value
+                ? '#111827'
+                : 'transparent',
             color:
-              value === option.value ? '#ffffff' : '#6b7280',
-            transition: 'all 0.2s ease',
+              value === option.value
+                ? '#ffffff'
+                : '#6b7280',
+            transition:
+              'all 0.2s ease',
           }}
         >
           {option.label}
@@ -2767,7 +2986,9 @@ function ProductTableRow({
         <div className="admin-actions">
           <button
             className="edit-btn"
-            onClick={() => onEdit(product)}
+            onClick={() =>
+              onEdit(product)
+            }
             title="Edit product"
             disabled={isDeleting}
           >
@@ -2800,7 +3021,9 @@ type ProductFormProps = {
   product: Product
   categories: Category[]
   onClose: () => void
-  onSave: (product: Product) => Promise<void>
+  onSave: (
+    product: Product,
+  ) => Promise<void>
   saving: boolean
 }
 
@@ -2821,7 +3044,9 @@ function ProductForm({
   const [uploading, setUploading] =
     useState(false)
 
-  function updateField<K extends keyof Product>(
+  function updateField<
+    K extends keyof Product,
+  >(
     key: K,
     value: Product[K],
   ) {
@@ -2831,21 +3056,33 @@ function ProductForm({
     }))
   }
 
-  async function uploadImage(file: File) {
+  async function uploadImage(
+    file: File,
+  ) {
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.')
+      alert(
+        'Please select an image file.',
+      )
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5 MB.')
+    if (
+      file.size >
+      5 * 1024 * 1024
+    ) {
+      alert(
+        'Image size should be less than 5 MB.',
+      )
       return
     }
 
     setUploading(true)
 
     const extension =
-      file.name.split('.').pop()?.toLowerCase() ||
+      file.name
+        .split('.')
+        .pop()
+        ?.toLowerCase() ||
       'jpg'
 
     const fileName = `products/${crypto.randomUUID()}.${extension}`
@@ -2853,11 +3090,15 @@ function ProductForm({
     const { error } =
       await supabase.storage
         .from('product-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
-        })
+        .upload(
+          fileName,
+          file,
+          {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type,
+          },
+        )
 
     if (error) {
       console.error(error)
