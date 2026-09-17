@@ -181,6 +181,58 @@ export default function ProductDetail() {
   }
 
   // =========================
+  // AFFILIATE CLICK TRACKING
+  // =========================
+
+  const handleAffiliateClick = async () => {
+    if (!product?.affiliateUrl) {
+      return
+    }
+
+    const userAgent =
+      navigator.userAgent || ''
+
+    let deviceType = 'desktop'
+
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(userAgent)) {
+      deviceType = 'mobile'
+    } else if (/Tablet|iPad/i.test(userAgent)) {
+      deviceType = 'tablet'
+    }
+
+    const referrer =
+      document.referrer || ''
+
+    // Record the affiliate click.
+    // We do not wait for this request before opening
+    // the marketplace link, so the user experience stays fast.
+    try {
+      await supabase
+        .from('affiliate_clicks')
+        .insert({
+          product_id: product.id,
+          marketplace: product.marketplace,
+          affiliate_url: product.affiliateUrl,
+          referrer,
+          user_agent: userAgent,
+          device_type: deviceType,
+        })
+    } catch (error) {
+      console.error(
+        'Failed to record affiliate click:',
+        error
+      )
+    }
+
+    // Open the affiliate destination
+    window.open(
+      product.affiliateUrl,
+      '_blank',
+      'noopener,noreferrer'
+    )
+  }
+
+  // =========================
   // LOADING
   // =========================
 
@@ -422,16 +474,13 @@ export default function ProductDetail() {
               {/* AFFILIATE LINK */}
 
               {product.affiliateUrl ? (
-                <a
+                <button
+                  type="button"
                   className="primary-cta"
-                  href={
-                    product.affiliateUrl
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer nofollow sponsored"
+                  onClick={handleAffiliateClick}
                 >
                   View Deal →
-                </a>
+                </button>
               ) : (
                 <button
                   className="primary-cta"

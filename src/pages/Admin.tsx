@@ -7,6 +7,8 @@ import {
   ImagePlus,
   LayoutDashboard,
   LogOut,
+  MousePointerClick,
+  RefreshCw,
   Package,
   Pencil,
   Plus,
@@ -52,7 +54,18 @@ type DbProduct = {
   published: boolean
 }
 
-const ITEMS_PER_PAGE = 10
+type AffiliateClick = {
+  id: string
+  product_id: string | null
+  marketplace: string | null
+  affiliate_url: string | null
+  clicked_at: string
+  referrer: string | null
+  user_agent: string | null
+  device_type: string | null
+}
+
+type AnalyticsView = 'day' | 'week' | 'month'
 
 const emptyProduct: Product = {
   id: '',
@@ -140,9 +153,6 @@ export default function Admin() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [quickFilter, setQuickFilter] = useState('All')
 
-  const [overviewPage, setOverviewPage] = useState(1)
-  const [productsPage, setProductsPage] = useState(1)
-
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] =
     useState<Product | null>(null)
@@ -171,6 +181,18 @@ export default function Admin() {
 
   const [showCategoryForm, setShowCategoryForm] =
     useState(false)
+
+  const [affiliateClicks, setAffiliateClicks] =
+    useState<AffiliateClick[]>([])
+  const [analyticsLoading, setAnalyticsLoading] =
+    useState(false)
+  const [analyticsView, setAnalyticsView] =
+    useState<AnalyticsView>('month')
+
+  const PRODUCTS_PER_PAGE = 10
+
+  const [overviewPage, setOverviewPage] = useState(1)
+  const [productsPage, setProductsPage] = useState(1)
 
   function showNotice(
     type: 'success' | 'error',
@@ -259,6 +281,36 @@ export default function Admin() {
     setCategories((data ?? []) as Category[])
   }
 
+  async function loadAffiliateClicks() {
+    setAnalyticsLoading(true)
+
+    const { data, error } = await supabase
+      .from('affiliate_clicks')
+      .select(
+        'id, product_id, marketplace, affiliate_url, clicked_at, referrer, user_agent, device_type',
+      )
+      .order('clicked_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      showNotice(
+        'error',
+        `Unable to load analytics: ${error.message}`,
+      )
+      setAnalyticsLoading(false)
+      return
+    }
+
+    setAffiliateClicks((data ?? []) as AffiliateClick[])
+    setAnalyticsLoading(false)
+  }
+
+  useEffect(() => {
+    if (session && activeSection === 'analytics') {
+      loadAffiliateClicks()
+    }
+  }, [session, activeSection])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
 
@@ -294,8 +346,7 @@ export default function Admin() {
     setShowCategoryForm(false)
     setEditingCategoryId(null)
     setCategoryName('')
-    setOverviewPage(1)
-    setProductsPage(1)
+    setAffiliateClicks([])
   }
 
   async function handleDelete(id: string) {
@@ -467,9 +518,6 @@ export default function Admin() {
       dbToProduct(data),
       ...current,
     ])
-
-    setOverviewPage(1)
-    setProductsPage(1)
 
     setShowForm(false)
     setEditingProduct(null)
@@ -841,6 +889,30 @@ export default function Admin() {
     quickFilter,
   ])
 
+  const productsTotalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredProducts.length / PRODUCTS_PER_PAGE,
+    ),
+  )
+
+  const paginatedProducts = filteredProducts.slice(
+    (productsPage - 1) * PRODUCTS_PER_PAGE,
+    productsPage * PRODUCTS_PER_PAGE,
+  )
+
+  const overviewTotalPages = Math.max(
+    1,
+    Math.ceil(
+      products.length / PRODUCTS_PER_PAGE,
+    ),
+  )
+
+  const paginatedOverviewProducts = products.slice(
+    (overviewPage - 1) * PRODUCTS_PER_PAGE,
+    overviewPage * PRODUCTS_PER_PAGE,
+  )
+
   const stats = {
     total: products.length,
     published: products.filter(
@@ -860,63 +932,182 @@ export default function Admin() {
     ).length,
   }
 
-  const overviewTotalPages = Math.max(
+  const recentProducts = products.slice(0, 5)
+
+  const analyticsFilteredClicks = useMemo(() => {
+    const now = new Date()
+    const start = new Date(now)
+
+    if (analyticsView === 'day') {
+      start.setHours(0, 0, 0, 0)
+    } else if (analyticsView === 'week') {
+      start.setHours(0, 0, 0, 0)
+      start.setDate(start.getDate() - 6)
+    } else {
+      start.setHours(0, 0, 0, 0)
+      start.setDate(start.getDate() - 29)
+    }
+
+    return affiliateClicks.filter(
+      (click) => new Date(click.clicked_at) >= start,
+    )
+  }, [affiliateClicks, analyticsView])
+
+  const analyticsStats = useMemo(() => {
+    const now = new Date()
+    const today = new Date(now)
+    today.setHours(0, 0, 0, 0)
+
+    const last7 = new Date(today)
+    last7.setDate(last7.getDate() - 6)
+
+    const last30 = new Date(today)
+    last30.setDate(last30.getDate() - 29)
+
+    const affiliateLinks = products.filter(
+      (product) => Boolean(product.affiliateUrl?.trim()),
+    ).length
+
+    return {
+      totalClicks: affiliateClicks.length,
+      todayClicks: affiliateClicks.filter(
+        (click) => new Date(click.clicked_at) >= today,
+      ).length,
+      last7DaysClicks: affiliateClicks.filter(
+        (click) => new Date(click.clicked_at) >= last7,
+      ).length,
+      last30DaysClicks: affiliateClicks.filter(
+        (click) => new Date(click.clicked_at) >= last30,
+      ).length,
+      affiliateLinks,
+    }
+  }, [affiliateClicks, products])
+
+  const analyticsChart = useMemo(() => {
+    const points: { key: string; label: string; clicks: number }[] = []
+    const now = new Date()
+
+    if (analyticsView === 'day') {
+      for (let hour = 0; hour < 24; hour += 1) {
+        const date = new Date(now)
+        date.setHours(hour, 0, 0, 0)
+
+        const clicks = analyticsFilteredClicks.filter((click) => {
+          const clicked = new Date(click.clicked_at)
+          return (
+            clicked.getFullYear() === date.getFullYear() &&
+            clicked.getMonth() === date.getMonth() &&
+            clicked.getDate() === date.getDate() &&
+            clicked.getHours() === hour
+          )
+        }).length
+
+        points.push({
+          key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}`,
+          label: date.toLocaleTimeString('en-IN', { hour: 'numeric' }),
+          clicks,
+        })
+      }
+    } else {
+      const days = analyticsView === 'week' ? 7 : 30
+
+      for (let offset = days - 1; offset >= 0; offset -= 1) {
+        const date = new Date(now)
+        date.setHours(0, 0, 0, 0)
+        date.setDate(date.getDate() - offset)
+
+        const clicks = analyticsFilteredClicks.filter((click) => {
+          const clicked = new Date(click.clicked_at)
+          return (
+            clicked.getFullYear() === date.getFullYear() &&
+            clicked.getMonth() === date.getMonth() &&
+            clicked.getDate() === date.getDate()
+          )
+        }).length
+
+        points.push({
+          key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+          label: date.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+          }),
+          clicks,
+        })
+      }
+    }
+
+    return points
+  }, [analyticsFilteredClicks, analyticsView])
+
+  const analyticsMaxClicks = Math.max(
     1,
-    Math.ceil(
-      products.length / ITEMS_PER_PAGE,
-    ),
+    ...analyticsChart.map((point) => point.clicks),
   )
 
-  const productsTotalPages = Math.max(
-    1,
-    Math.ceil(
-      filteredProducts.length /
-        ITEMS_PER_PAGE,
-    ),
-  )
+  const marketplaceBreakdown = useMemo(() => {
+    const counts = new Map<string, number>()
 
-  const overviewProducts = useMemo(() => {
-    const start =
-      (overviewPage - 1) *
-      ITEMS_PER_PAGE
+    analyticsFilteredClicks.forEach((click) => {
+      const marketplace = click.marketplace || 'Unknown'
+      counts.set(marketplace, (counts.get(marketplace) || 0) + 1)
+    })
 
-    return products.slice(
-      start,
-      start + ITEMS_PER_PAGE,
-    )
-  }, [products, overviewPage])
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  }, [analyticsFilteredClicks])
 
-  const paginatedProducts = useMemo(() => {
-    const start =
-      (productsPage - 1) *
-      ITEMS_PER_PAGE
+  const deviceBreakdown = useMemo(() => {
+    const counts = new Map<string, number>()
 
-    return filteredProducts.slice(
-      start,
-      start + ITEMS_PER_PAGE,
-    )
-  }, [
-    filteredProducts,
-    productsPage,
-  ])
+    analyticsFilteredClicks.forEach((click) => {
+      const device = click.device_type || 'Unknown'
+      counts.set(device, (counts.get(device) || 0) + 1)
+    })
 
-  useEffect(() => {
-    if (overviewPage > overviewTotalPages) {
-      setOverviewPage(overviewTotalPages)
-    }
-  }, [
-    overviewPage,
-    overviewTotalPages,
-  ])
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  }, [analyticsFilteredClicks])
 
-  useEffect(() => {
-    if (productsPage > productsTotalPages) {
-      setProductsPage(productsTotalPages)
-    }
-  }, [
-    productsPage,
-    productsTotalPages,
-  ])
+  const topClickedProducts = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    analyticsFilteredClicks.forEach((click) => {
+      if (!click.product_id) return
+      counts.set(
+        click.product_id,
+        (counts.get(click.product_id) || 0) + 1,
+      )
+    })
+
+    return Array.from(counts.entries())
+      .map(([productId, clicks]) => ({
+        productId,
+        clicks,
+        product: products.find((item) => item.id === productId),
+      }))
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, 10)
+  }, [analyticsFilteredClicks, products])
+
+  const analyticsRangeLabel =
+    analyticsView === 'day'
+      ? 'Today'
+      : analyticsView === 'week'
+        ? 'Last 7 days'
+        : 'Last 30 days'
+
+  function clearFilters() {
+    setSearch('')
+    setCategoryFilter('All')
+    setMarketplaceFilter('All')
+    setStatusFilter('All')
+    setQuickFilter('All')
+  }
+
+  const hasFilters =
+    Boolean(search) ||
+    categoryFilter !== 'All' ||
+    marketplaceFilter !== 'All' ||
+    statusFilter !== 'All' ||
+    quickFilter !== 'All'
 
   useEffect(() => {
     setProductsPage(1)
@@ -928,21 +1119,17 @@ export default function Admin() {
     quickFilter,
   ])
 
-  function clearFilters() {
-    setSearch('')
-    setCategoryFilter('All')
-    setMarketplaceFilter('All')
-    setStatusFilter('All')
-    setQuickFilter('All')
-    setProductsPage(1)
-  }
+  useEffect(() => {
+    if (productsPage > productsTotalPages) {
+      setProductsPage(productsTotalPages)
+    }
+  }, [productsPage, productsTotalPages])
 
-  const hasFilters =
-    Boolean(search) ||
-    categoryFilter !== 'All' ||
-    marketplaceFilter !== 'All' ||
-    statusFilter !== 'All' ||
-    quickFilter !== 'All'
+  useEffect(() => {
+    if (overviewPage > overviewTotalPages) {
+      setOverviewPage(overviewTotalPages)
+    }
+  }, [overviewPage, overviewTotalPages])
 
   function handleSectionChange(
     section: AdminSection,
@@ -1210,9 +1397,8 @@ export default function Admin() {
                 <div>
                   <h2>Recent Products</h2>
                   <p>
-                    Showing{' '}
-                    {overviewProducts.length} of{' '}
-                    {products.length} products
+                    Your latest products added to
+                    Picksy
                   </p>
                 </div>
 
@@ -1246,51 +1432,47 @@ export default function Admin() {
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>Product</th>
-                          <th>Marketplace</th>
-                          <th>Category</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th>Tags</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Marketplace</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Tags</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
 
-                      <tbody>
-                        {overviewProducts.map(
-                          (product) => (
-                            <ProductTableRow
-                              key={product.id}
-                              product={product}
-                              onEdit={
-                                openEditForm
-                              }
-                              onDelete={
-                                handleDelete
-                              }
-                              deletingId={
-                                deletingId
-                              }
-                            />
-                          ),
-                        )}
-                      </tbody>
-                    </table>
+                    <tbody>
+                      {paginatedOverviewProducts.map(
+                        (product) => (
+                          <ProductTableRow
+                            key={product.id}
+                            product={product}
+                            onEdit={
+                              openEditForm
+                            }
+                            onDelete={
+                              handleDelete
+                            }
+                            deletingId={
+                              deletingId
+                            }
+                          />
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                )}
 
-                    <Pagination
-                      currentPage={overviewPage}
-                      totalPages={
-                        overviewTotalPages
-                      }
-                      onPageChange={
-                        setOverviewPage
-                      }
-                    />
-                  </>
+                {products.length > PRODUCTS_PER_PAGE && (
+                  <Pagination
+                    currentPage={overviewPage}
+                    totalPages={overviewTotalPages}
+                    onPageChange={setOverviewPage}
+                  />
                 )}
               </div>
             </section>
@@ -1360,20 +1542,8 @@ export default function Admin() {
 
                   <p>
                     Showing{' '}
-                    {filteredProducts.length ===
-                    0
-                      ? 0
-                      : (productsPage - 1) *
-                          ITEMS_PER_PAGE +
-                        1}{' '}
-                    -{' '}
-                    {Math.min(
-                      productsPage *
-                        ITEMS_PER_PAGE,
-                      filteredProducts.length,
-                    )}{' '}
-                    of{' '}
                     {filteredProducts.length}{' '}
+                    of {products.length}{' '}
                     products
                   </p>
                 </div>
@@ -1541,51 +1711,47 @@ export default function Admin() {
                     )}
                   </div>
                 ) : (
-                  <>
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>Product</th>
-                          <th>Marketplace</th>
-                          <th>Category</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th>Tags</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Marketplace</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Tags</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
 
-                      <tbody>
-                        {paginatedProducts.map(
-                          (product) => (
-                            <ProductTableRow
-                              key={product.id}
-                              product={product}
-                              onEdit={
-                                openEditForm
-                              }
-                              onDelete={
-                                handleDelete
-                              }
-                              deletingId={
-                                deletingId
-                              }
-                            />
-                          ),
-                        )}
-                      </tbody>
-                    </table>
+                    <tbody>
+                      {paginatedProducts.map(
+                        (product) => (
+                          <ProductTableRow
+                            key={product.id}
+                            product={product}
+                            onEdit={
+                              openEditForm
+                            }
+                            onDelete={
+                              handleDelete
+                            }
+                            deletingId={
+                              deletingId
+                            }
+                          />
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                )}
 
-                    <Pagination
-                      currentPage={productsPage}
-                      totalPages={
-                        productsTotalPages
-                      }
-                      onPageChange={
-                        setProductsPage
-                      }
-                    />
-                  </>
+                {filteredProducts.length > PRODUCTS_PER_PAGE && (
+                  <Pagination
+                    currentPage={productsPage}
+                    totalPages={productsTotalPages}
+                    onPageChange={setProductsPage}
+                  />
                 )}
               </div>
             </section>
@@ -1602,6 +1768,7 @@ export default function Admin() {
                 </p>
               </div>
 
+              {/* ONLY ONE ADD CATEGORY BUTTON */}
               <button
                 className="admin-add-btn"
                 onClick={startAddCategory}
@@ -1849,24 +2016,439 @@ export default function Admin() {
             <header className="admin-topbar">
               <div>
                 <h1>Analytics</h1>
-                <p>
-                  Track your Picksy performance
-                </p>
+                <p>Track your Picksy affiliate performance</p>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <button
+                  className="admin-secondary-btn"
+                  onClick={loadAffiliateClicks}
+                  disabled={analyticsLoading}
+                  title="Refresh analytics"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                  }}
+                >
+                  <RefreshCw
+                    size={15}
+                    style={{
+                      animation: analyticsLoading
+                        ? 'admin-spin 1s linear infinite'
+                        : undefined,
+                    }}
+                  />
+                  Refresh
+                </button>
               </div>
             </header>
 
-            <div className="admin-empty">
-              <BarChart3 size={42} />
+            <section className="admin-stats">
+              <div className="admin-stat-card">
+                <span>Affiliate Clicks</span>
+                <strong>{analyticsStats.totalClicks}</strong>
+              </div>
 
-              <h3>
-                Analytics module coming next
-              </h3>
+              <div className="admin-stat-card">
+                <span>Today</span>
+                <strong>{analyticsStats.todayClicks}</strong>
+              </div>
 
-              <p>
-                We will connect product and
-                affiliate analytics here later.
-              </p>
+              <div className="admin-stat-card">
+                <span>Last 7 Days</span>
+                <strong>{analyticsStats.last7DaysClicks}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Last 30 Days</span>
+                <strong>{analyticsStats.last30DaysClicks}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Products</span>
+                <strong>{products.length}</strong>
+              </div>
+
+              <div className="admin-stat-card">
+                <span>Affiliate Links</span>
+                <strong>{analyticsStats.affiliateLinks}</strong>
+              </div>
+            </section>
+
+            <section className="admin-products-section">
+              <div
+                className="admin-section-header"
+                style={{
+                  alignItems: 'center',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <h2>Click Activity</h2>
+                  <p>Affiliate clicks by {analyticsView === 'day' ? 'hour' : 'day'}</p>
+                </div>
+
+                <AnalyticsPeriodTabs
+                  value={analyticsView}
+                  onChange={setAnalyticsView}
+                />
+              </div>
+
+              <div
+                style={{
+                  padding: '28px 18px 18px',
+                  overflowX: 'auto',
+                }}
+              >
+                {analyticsLoading ? (
+                  <div className="admin-empty" style={{ minHeight: 220 }}>
+                    <BarChart3 size={34} />
+                    <p>Loading click activity...</p>
+                  </div>
+                ) : analyticsFilteredClicks.length === 0 ? (
+                  <div className="admin-empty" style={{ minHeight: 220 }}>
+                    <MousePointerClick size={36} />
+                    <h3>No clicks in {analyticsRangeLabel.toLowerCase()}</h3>
+                    <p>Affiliate clicks will appear here automatically.</p>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      minWidth: analyticsView === 'day' ? 760 : analyticsView === 'month' ? 900 : 620,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 260,
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        gap: analyticsView === 'month' ? 5 : 8,
+                        padding: '0 6px',
+                        borderBottom: '1px solid #e5e7eb',
+                      }}
+                    >
+                      {analyticsChart.map((point) => {
+                        const height =
+                          point.clicks === 0
+                            ? 4
+                            : Math.max(
+                                10,
+                                (point.clicks / analyticsMaxClicks) * 220,
+                              )
+
+                        return (
+                          <div
+                            key={point.key}
+                            style={{
+                              flex: 1,
+                              minWidth: analyticsView === 'month' ? 12 : 22,
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'flex-end',
+                              gap: 7,
+                            }}
+                          >
+                            {point.clicks > 0 && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: '#111827',
+                                }}
+                              >
+                                {point.clicks}
+                              </span>
+                            )}
+
+                            <div
+                              title={`${point.label}: ${point.clicks} click${point.clicks === 1 ? '' : 's'}`}
+                              style={{
+                                width: '100%',
+                                maxWidth: analyticsView === 'month' ? 20 : 34,
+                                height,
+                                minHeight: 4,
+                                borderRadius: '6px 6px 2px 2px',
+                                background:
+                                  point.clicks > 0
+                                    ? 'linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%)'
+                                    : '#e5e7eb',
+                              }}
+                            />
+
+                            <span
+                              style={{
+                                fontSize: 10,
+                                color: '#6b7280',
+                                whiteSpace: 'nowrap',
+                                transform:
+                                  analyticsView === 'month'
+                                    ? 'rotate(-45deg) translate(-4px, 7px)'
+                                    : undefined,
+                                transformOrigin: 'center',
+                              }}
+                            >
+                              {point.label}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 16,
+                marginTop: 16,
+              }}
+            >
+              <section className="admin-products-section" style={{ margin: 0 }}>
+                <div className="admin-section-header">
+                  <div>
+                    <h2>Marketplace</h2>
+                    <p>Clicks by marketplace</p>
+                  </div>
+                </div>
+
+                {marketplaceBreakdown.length === 0 ? (
+                  <div className="admin-empty" style={{ minHeight: 120 }}>
+                    <p>No marketplace data yet.</p>
+                  </div>
+                ) : (
+                  <div>
+                    {marketplaceBreakdown.map(([name, count]) => (
+                      <div
+                        key={name}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '14px 16px',
+                          borderTop: '1px solid #eef0f4',
+                        }}
+                      >
+                        <strong>{name}</strong>
+                        <strong>
+                          {count} {count === 1 ? 'click' : 'clicks'}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="admin-products-section" style={{ margin: 0 }}>
+                <div className="admin-section-header">
+                  <div>
+                    <h2>Devices</h2>
+                    <p>Visitor device breakdown</p>
+                  </div>
+                </div>
+
+                {deviceBreakdown.length === 0 ? (
+                  <div className="admin-empty" style={{ minHeight: 120 }}>
+                    <p>No device data yet.</p>
+                  </div>
+                ) : (
+                  <div>
+                    {deviceBreakdown.map(([name, count]) => (
+                      <div
+                        key={name}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '14px 16px',
+                          borderTop: '1px solid #eef0f4',
+                        }}
+                      >
+                        <strong style={{ textTransform: 'capitalize' }}>
+                          {name}
+                        </strong>
+                        <strong>
+                          {count} {count === 1 ? 'click' : 'clicks'}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
+
+            <section className="admin-products-section" style={{ marginTop: 16 }}>
+              <div className="admin-section-header">
+                <div>
+                  <h2>Top Clicked Products</h2>
+                  <p>Products receiving the most affiliate clicks in {analyticsRangeLabel.toLowerCase()}</p>
+                </div>
+              </div>
+
+              <div className="admin-table-wrapper">
+                {topClickedProducts.length === 0 ? (
+                  <div className="admin-empty">
+                    <Package size={36} />
+                    <h3>No product clicks yet</h3>
+                    <p>Once visitors click an affiliate link, products will appear here.</p>
+                  </div>
+                ) : (
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Product</th>
+                        <th>Marketplace</th>
+                        <th>Clicks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topClickedProducts.map((item, index) => (
+                        <tr key={item.productId}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <div className="admin-product-cell">
+                              <div className="admin-product-image">
+                                {item.product?.image ? (
+                                  <img
+                                    src={item.product.image}
+                                    alt={item.product.name}
+                                  />
+                                ) : (
+                                  <ImagePlus size={20} />
+                                )}
+                              </div>
+                              <strong>
+                                {item.product?.name || 'Deleted product'}
+                              </strong>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="marketplace-badge">
+                              {item.product?.marketplace ||
+                                analyticsFilteredClicks.find(
+                                  (click) => click.product_id === item.productId,
+                                )?.marketplace ||
+                                'Unknown'}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{item.clicks}</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+
+            <section className="admin-products-section" style={{ marginTop: 16 }}>
+              <div
+                className="admin-section-header"
+                style={{
+                  alignItems: 'center',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <h2>Earnings Tracking</h2>
+                  <p>Same {analyticsRangeLabel.toLowerCase()} view for your affiliate performance.</p>
+                </div>
+
+                <AnalyticsPeriodTabs
+                  value={analyticsView}
+                  onChange={setAnalyticsView}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 16,
+                  padding: 16,
+                }}
+              >
+                <div
+                  style={{
+                    border: '1px solid #e8eaf0',
+                    borderRadius: 14,
+                    padding: 18,
+                    background: '#fafafa',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#6b7280',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Clicks in selected period
+                  </span>
+                  <strong style={{ fontSize: 28, color: '#111827' }}>
+                    {analyticsFilteredClicks.length}
+                  </strong>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 13,
+                      color: '#6b7280',
+                    }}
+                  >
+                    {analyticsRangeLabel}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    border: '1px solid #e8eaf0',
+                    borderRadius: 14,
+                    padding: 18,
+                    background: '#fafafa',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#6b7280',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Actual earnings
+                  </span>
+                  <strong style={{ fontSize: 24, color: '#111827' }}>
+                    Not connected
+                  </strong>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: '#6b7280',
+                    }}
+                  >
+                    Actual commission data will come from marketplace affiliate reports or API data. Click counts are tracked by Picksy and are not treated as earnings.
+                  </p>
+                </div>
+              </div>
+            </section>
           </section>
         )}
 
@@ -1934,60 +2516,166 @@ function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
-  if (totalPages <= 1) {
-    return null
-  }
+  if (totalPages <= 1) return null
 
   const pages: number[] = []
 
-  for (let page = 1; page <= totalPages; page++) {
-    pages.push(page)
+  if (totalPages <= 7) {
+    for (let page = 1; page <= totalPages; page += 1) {
+      pages.push(page)
+    }
+  } else {
+    pages.push(1)
+
+    if (currentPage > 4) {
+      pages.push(-1)
+    }
+
+    const start = Math.max(2, currentPage - 1)
+    const end = Math.min(totalPages - 1, currentPage + 1)
+
+    for (let page = start; page <= end; page += 1) {
+      pages.push(page)
+    }
+
+    if (currentPage < totalPages - 3) {
+      pages.push(-2)
+    }
+
+    pages.push(totalPages)
   }
 
   return (
     <div className="admin-pagination">
-      <button
-        type="button"
-        className="admin-pagination-btn"
-        disabled={currentPage === 1}
-        onClick={() =>
-          onPageChange(currentPage - 1)
-        }
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          flexWrap: 'wrap',
+          padding: '20px 0 4px',
+        }}
       >
-        Previous
-      </button>
+        <button
+          type="button"
+          className="admin-secondary-btn"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
 
-      <div className="admin-pagination-pages">
-        {pages.map((page) => (
-          <button
-            type="button"
-            key={page}
-            className={`admin-pagination-page ${
-              currentPage === page
-                ? 'active'
-                : ''
-            }`}
-            onClick={() =>
-              onPageChange(page)
-            }
-          >
-            {page}
-          </button>
-        ))}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          {pages.map((page, index) =>
+            page < 0 ? (
+              <span
+                key={`ellipsis-${index}`}
+                style={{
+                  padding: '0 4px',
+                  color: 'var(--text-muted, #777)',
+                }}
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                type="button"
+                key={page}
+                onClick={() => onPageChange(page)}
+                aria-current={
+                  currentPage === page ? 'page' : undefined
+                }
+                style={{
+                  minWidth: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  border:
+                    currentPage === page
+                      ? '1px solid #222'
+                      : '1px solid #e5e5e5',
+                  background:
+                    currentPage === page ? '#222' : '#fff',
+                  color:
+                    currentPage === page ? '#fff' : '#333',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                {page}
+              </button>
+            ),
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="admin-secondary-btn"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
       </div>
+    </div>
+  )
+}
 
-      <button
-        type="button"
-        className="admin-pagination-btn"
-        disabled={
-          currentPage === totalPages
-        }
-        onClick={() =>
-          onPageChange(currentPage + 1)
-        }
-      >
-        Next
-      </button>
+type AnalyticsPeriodTabsProps = {
+  value: AnalyticsView
+  onChange: (value: AnalyticsView) => void
+}
+
+function AnalyticsPeriodTabs({
+  value,
+  onChange,
+}: AnalyticsPeriodTabsProps) {
+  const options: { value: AnalyticsView; label: string }[] = [
+    { value: 'day', label: 'Day' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+  ]
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: 4,
+        border: '1px solid #e5e7eb',
+        borderRadius: 10,
+        background: '#f8f9fb',
+      }}
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          style={{
+            border: 'none',
+            borderRadius: 7,
+            padding: '8px 14px',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            background:
+              value === option.value ? '#111827' : 'transparent',
+            color:
+              value === option.value ? '#ffffff' : '#6b7280',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   )
 }

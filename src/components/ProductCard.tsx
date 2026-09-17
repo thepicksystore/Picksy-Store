@@ -11,6 +11,8 @@ import {
   toggleFavorite,
 } from '../lib/favorites'
 
+import { supabase } from '../lib/supabase'
+
 const marketplaceClass = (name: string) =>
   name.toLowerCase()
 
@@ -53,6 +55,56 @@ export default function ProductCard({
     // Tell other components that favorites changed
     window.dispatchEvent(
       new Event('picksy-favorites-changed')
+    )
+  }
+
+  // =========================
+  // AFFILIATE CLICK TRACKING
+  // =========================
+
+  const handleAffiliateClick = async () => {
+    if (!product.affiliateUrl) {
+      return
+    }
+
+    const userAgent =
+      navigator.userAgent || ''
+
+    let deviceType = 'desktop'
+
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(userAgent)) {
+      deviceType = 'mobile'
+    } else if (/Tablet|iPad/i.test(userAgent)) {
+      deviceType = 'tablet'
+    }
+
+    const referrer =
+      document.referrer || ''
+
+    // Record affiliate click in Supabase
+    try {
+      await supabase
+        .from('affiliate_clicks')
+        .insert({
+          product_id: product.id,
+          marketplace: product.marketplace,
+          affiliate_url: product.affiliateUrl,
+          referrer,
+          user_agent: userAgent,
+          device_type: deviceType,
+        })
+    } catch (error) {
+      console.error(
+        'Failed to record affiliate click:',
+        error
+      )
+    }
+
+    // Open marketplace affiliate URL
+    window.open(
+      product.affiliateUrl,
+      '_blank',
+      'noopener,noreferrer'
     )
   }
 
@@ -139,6 +191,7 @@ export default function ProductCard({
       ========================= */}
 
       <div className="product-content">
+
         {/* META */}
 
         <div className="product-meta">
@@ -209,15 +262,14 @@ export default function ProductCard({
         ========================= */}
 
         {product.affiliateUrl ? (
-          <a
+          <button
             className="shop-button"
-            href={product.affiliateUrl}
-            target="_blank"
-            rel="noopener noreferrer nofollow sponsored"
+            type="button"
+            onClick={handleAffiliateClick}
           >
             Shop Now
             <ExternalLink size={14} />
-          </a>
+          </button>
         ) : (
           <button
             className="shop-button"
@@ -232,6 +284,7 @@ export default function ProductCard({
             <ExternalLink size={14} />
           </button>
         )}
+
       </div>
     </article>
   )
