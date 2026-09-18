@@ -62,8 +62,15 @@ export default function ProductCard({
   // AFFILIATE CLICK TRACKING
   // =========================
 
-  const handleAffiliateClick = async () => {
+  const handleAffiliateClick = () => {
     if (!product.affiliateUrl) {
+      return
+    }
+
+    const affiliateUrl =
+      product.affiliateUrl.trim()
+
+    if (!affiliateUrl) {
       return
     }
 
@@ -72,40 +79,50 @@ export default function ProductCard({
 
     let deviceType = 'desktop'
 
-    if (/Mobi|Android|iPhone|iPad|iPod/i.test(userAgent)) {
+    if (
+      /Mobi|Android|iPhone|iPad|iPod/i.test(
+        userAgent
+      )
+    ) {
       deviceType = 'mobile'
-    } else if (/Tablet|iPad/i.test(userAgent)) {
+    } else if (
+      /Tablet|iPad/i.test(userAgent)
+    ) {
       deviceType = 'tablet'
     }
 
     const referrer =
       document.referrer || ''
 
-    // Record affiliate click in Supabase
-    try {
-      await supabase
-        .from('affiliate_clicks')
-        .insert({
-          product_id: product.id,
-          marketplace: product.marketplace,
-          affiliate_url: product.affiliateUrl,
-          referrer,
-          user_agent: userAgent,
-          device_type: deviceType,
-        })
-    } catch (error) {
-      console.error(
-        'Failed to record affiliate click:',
-        error
-      )
-    }
-
-    // Open marketplace affiliate URL
+    // Open marketplace affiliate URL FIRST.
+    // This keeps the action directly connected
+    // to the user's click and avoids popup blockers.
     window.open(
-      product.affiliateUrl,
+      affiliateUrl,
       '_blank',
       'noopener,noreferrer'
     )
+
+    // Record affiliate click in Supabase
+    // in the background without delaying navigation.
+    void supabase
+      .from('affiliate_clicks')
+      .insert({
+        product_id: product.id,
+        marketplace: product.marketplace,
+        affiliate_url: affiliateUrl,
+        referrer,
+        user_agent: userAgent,
+        device_type: deviceType,
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.error(
+            'Failed to record affiliate click:',
+            error
+          )
+        }
+      })
   }
 
   return (
@@ -265,7 +282,9 @@ export default function ProductCard({
           <button
             className="shop-button"
             type="button"
-            onClick={handleAffiliateClick}
+            onClick={
+              handleAffiliateClick
+            }
           >
             Shop Now
             <ExternalLink size={14} />

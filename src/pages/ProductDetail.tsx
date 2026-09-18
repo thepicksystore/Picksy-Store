@@ -184,8 +184,15 @@ export default function ProductDetail() {
   // AFFILIATE CLICK TRACKING
   // =========================
 
-  const handleAffiliateClick = async () => {
+  const handleAffiliateClick = () => {
     if (!product?.affiliateUrl) {
+      return
+    }
+
+    const affiliateUrl =
+      product.affiliateUrl.trim()
+
+    if (!affiliateUrl) {
       return
     }
 
@@ -194,42 +201,50 @@ export default function ProductDetail() {
 
     let deviceType = 'desktop'
 
-    if (/Mobi|Android|iPhone|iPad|iPod/i.test(userAgent)) {
+    if (
+      /Mobi|Android|iPhone|iPad|iPod/i.test(
+        userAgent
+      )
+    ) {
       deviceType = 'mobile'
-    } else if (/Tablet|iPad/i.test(userAgent)) {
+    } else if (
+      /Tablet|iPad/i.test(userAgent)
+    ) {
       deviceType = 'tablet'
     }
 
     const referrer =
       document.referrer || ''
 
-    // Record the affiliate click.
-    // We do not wait for this request before opening
-    // the marketplace link, so the user experience stays fast.
-    try {
-      await supabase
-        .from('affiliate_clicks')
-        .insert({
-          product_id: product.id,
-          marketplace: product.marketplace,
-          affiliate_url: product.affiliateUrl,
-          referrer,
-          user_agent: userAgent,
-          device_type: deviceType,
-        })
-    } catch (error) {
-      console.error(
-        'Failed to record affiliate click:',
-        error
-      )
-    }
-
-    // Open the affiliate destination
+    // Open the affiliate destination FIRST.
+    // This keeps the action directly connected
+    // to the user's click and avoids popup blockers.
     window.open(
-      product.affiliateUrl,
+      affiliateUrl,
       '_blank',
       'noopener,noreferrer'
     )
+
+    // Record the affiliate click in the background.
+    // We intentionally do not await this request.
+    void supabase
+      .from('affiliate_clicks')
+      .insert({
+        product_id: product.id,
+        marketplace: product.marketplace,
+        affiliate_url: affiliateUrl,
+        referrer,
+        user_agent: userAgent,
+        device_type: deviceType,
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.error(
+            'Failed to record affiliate click:',
+            error
+          )
+        }
+      })
   }
 
   // =========================
@@ -477,7 +492,9 @@ export default function ProductDetail() {
                 <button
                   type="button"
                   className="primary-cta"
-                  onClick={handleAffiliateClick}
+                  onClick={
+                    handleAffiliateClick
+                  }
                 >
                   View Deal →
                 </button>
