@@ -12,22 +12,31 @@ import Section from '../components/Section'
 import { supabase } from '../lib/supabase'
 import type { Product } from '../types/product'
 
-const categories = [
-  ['Women', '👗'],
-  ['Men', '👕'],
-  ['Kids', '🧸'],
-  ['Home', '🏠'],
-  ['Kitchen', '🍳'],
-  ['Beauty', '💄'],
-  ['Electronics', '🎧'],
-  ['Gadgets', '📷'],
-  ['Fashion', '🧥'],
-  ['More', '▦'],
-]
+type Category = {
+  id: string
+  name: string
+  slug: string
+}
+
+const categoryIcons: Record<string, string> = {
+  women: '👗',
+  men: '👕',
+  kids: '🧸',
+  home: '🏠',
+  kitchen: '🍳',
+  beauty: '💄',
+  electronics: '🎧',
+  gadgets: '📷',
+  fashion: '🧥',
+  lifestyle: '✨',
+  accessories: '👜',
+  festival: '🎉',
+}
 
 export default function Home() {
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
 
@@ -99,6 +108,35 @@ export default function Home() {
     }
 
     loadProducts()
+  }, [])
+
+  // =========================
+  // LOAD CATEGORIES FROM SUPABASE
+  // =========================
+
+  useEffect(() => {
+    async function loadCategories() {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, slug')
+        .order('created_at', {
+          ascending: true,
+        })
+
+      if (error) {
+        console.error(
+          'Failed to load categories:',
+          error
+        )
+
+        setCategories([])
+        return
+      }
+
+      setCategories(data ?? [])
+    }
+
+    loadCategories()
   }, [])
 
   // =========================
@@ -441,10 +479,10 @@ export default function Home() {
 
           <div className="category-row">
             {categories.map(
-              ([name, icon]) => (
+              (category) => (
                 <Link
-                  key={name}
-                  to={`/category/${name.toLowerCase()}`}
+                  key={category.id}
+                  to={`/category/${category.slug}`}
                   className="category-link"
                   style={{
                     textDecoration:
@@ -452,23 +490,34 @@ export default function Home() {
                     color: 'inherit',
                   }}
                 >
-                  <button
-                    type="button"
-                    style={{
-                      width: '100%',
-                    }}
-                  >
-                    <span>
-                      {icon}
-                    </span>
+                  <span>
+                    {categoryIcons[
+                      category.slug
+                    ] ?? '▦'}
+                  </span>
 
-                    <b>
-                      {name}
-                    </b>
-                  </button>
+                  <b>
+                    {category.name}
+                  </b>
                 </Link>
               )
             )}
+
+            <Link
+              to="/category/more"
+              className="category-link"
+              style={{
+                textDecoration:
+                  'none',
+                color: 'inherit',
+              }}
+            >
+              <span>▦</span>
+
+              <b>
+                More
+              </b>
+            </Link>
           </div>
         </section>
 

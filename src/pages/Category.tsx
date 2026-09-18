@@ -14,83 +14,67 @@ import Section from '../components/Section'
 import { supabase } from '../lib/supabase'
 import type { Product } from '../types/product'
 
-const categoryInfo: Record<
-  string,
-  {
-    title: string
-    description: string
-    emoji: string
-  }
-> = {
-  women: {
-    title: 'Women',
-    description:
-      'Trending fashion, beauty & lifestyle finds curated for you.',
-    emoji: '👗',
-  },
+type Category = {
+  id: string
+  name: string
+  slug: string
+}
 
-  men: {
-    title: 'Men',
-    description:
-      'Smart, useful & stylish finds for everyday life.',
-    emoji: '👕',
-  },
+const categoryDescriptions: Record<string, string> = {
+  women:
+    'Trending fashion, beauty & lifestyle finds curated for you.',
 
-  kids: {
-    title: 'Kids',
-    description:
-      'Fun, useful & adorable finds for little ones.',
-    emoji: '🧸',
-  },
+  men:
+    'Smart, useful & stylish finds for everyday life.',
 
-  home: {
-    title: 'Home',
-    description:
-      'Make your space better with beautiful & useful finds.',
-    emoji: '🏠',
-  },
+  kids:
+    'Fun, useful & adorable finds for little ones.',
 
-  kitchen: {
-    title: 'Kitchen',
-    description:
-      'Smart kitchen finds that make everyday life easier.',
-    emoji: '🍳',
-  },
+  home:
+    'Make your space better with beautiful & useful finds.',
 
-  beauty: {
-    title: 'Beauty',
-    description:
-      'Trending beauty & self-care finds worth checking out.',
-    emoji: '💄',
-  },
+  kitchen:
+    'Smart kitchen finds that make everyday life easier.',
 
-  electronics: {
-    title: 'Electronics',
-    description:
-      'Useful electronics and tech finds at smart prices.',
-    emoji: '🎧',
-  },
+  beauty:
+    'Trending beauty & self-care finds worth checking out.',
 
-  gadgets: {
-    title: 'Gadgets',
-    description:
-      'Cool, useful & trending gadgets you might love.',
-    emoji: '📷',
-  },
+  electronics:
+    'Useful electronics and tech finds at smart prices.',
 
-  fashion: {
-    title: 'Fashion',
-    description:
-      'Trending fashion finds for every style and occasion.',
-    emoji: '🧥',
-  },
+  gadgets:
+    'Cool, useful & trending gadgets you might love.',
 
-  more: {
-    title: 'All Finds',
-    description:
-      'Explore all the latest Picksy finds in one place.',
-    emoji: '✨',
-  },
+  fashion:
+    'Trending fashion finds for every style and occasion.',
+
+  lifestyle:
+    'Useful lifestyle finds curated for everyday life.',
+
+  accessories:
+    'Trending accessories and everyday finds curated for you.',
+
+  festival:
+    'Festive finds for celebrations, gifting and decoration.',
+
+  more:
+    'Explore all the latest Picksy finds in one place.',
+}
+
+const categoryIcons: Record<string, string> = {
+  women: '👗',
+  men: '👕',
+  kids: '🧸',
+  home: '🏠',
+  kitchen: '🍳',
+  beauty: '💄',
+  electronics: '🎧',
+  gadgets: '📷',
+  fashion: '🧥',
+  lifestyle: '✨',
+  accessories: '👜',
+  festival: '🎉',
+  more: '✨',
 }
 
 export default function Category() {
@@ -103,14 +87,106 @@ export default function Category() {
     .trim()
     .toLowerCase()
 
-  const info =
-    categoryInfo[categoryKey] ??
-    categoryInfo.more
-
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [categoryTitle, setCategoryTitle] = useState('')
+  const [categoryDescription, setCategoryDescription] =
+    useState('')
+  const [categoryNameValue, setCategoryNameValue] =
+    useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+
+  // =========================
+  // LOAD CATEGORY
+  // =========================
+
+  useEffect(() => {
+    async function loadCategory() {
+      if (categoryKey === 'more') {
+        setCategoryTitle('All Finds')
+        setCategoryDescription(
+          categoryDescriptions.more
+        )
+        setCategoryNameValue('')
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, slug')
+        .eq('slug', categoryKey)
+        .maybeSingle()
+
+      if (error) {
+        console.error(
+          'Failed to load category:',
+          error
+        )
+      }
+
+      if (data) {
+        setCategoryTitle(data.name)
+        setCategoryNameValue(data.name)
+
+        setCategoryDescription(
+          categoryDescriptions[data.slug] ??
+            `Explore ${data.name} finds curated by Picksy.`
+        )
+
+        return
+      }
+
+      const fallbackName =
+        categoryKey
+          .split('-')
+          .map(
+            (part) =>
+              part.charAt(0).toUpperCase() +
+              part.slice(1)
+          )
+          .join(' ')
+
+      setCategoryTitle(fallbackName)
+      setCategoryNameValue(fallbackName)
+      setCategoryDescription(
+        categoryDescriptions[categoryKey] ??
+          `Explore ${fallbackName} finds curated by Picksy.`
+      )
+    }
+
+    loadCategory()
+  }, [categoryKey])
+
+  // =========================
+  // LOAD CATEGORIES
+  // =========================
+
+  useEffect(() => {
+    async function loadCategories() {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, slug')
+        .order('created_at', {
+          ascending: true,
+        })
+
+      if (error) {
+        console.error(
+          'Failed to load categories:',
+          error
+        )
+
+        setCategories([])
+        return
+      }
+
+      setCategories(data ?? [])
+    }
+
+    loadCategories()
+  }, [])
 
   // =========================
   // LOAD PRODUCTS
@@ -162,7 +238,9 @@ export default function Category() {
           trending: Boolean(
             p.trending
           ),
-          isNew: Boolean(p.is_new),
+          isNew: Boolean(
+            p.is_new
+          ),
           picksyPick: Boolean(
             p.picksy_pick
           ),
@@ -189,6 +267,11 @@ export default function Category() {
 
     // More = all products
     if (categoryKey !== 'more') {
+      const targetCategory =
+        categoryNameValue
+          .trim()
+          .toLowerCase()
+
       result = result.filter(
         (product) =>
           String(
@@ -196,7 +279,7 @@ export default function Category() {
           )
             .trim()
             .toLowerCase() ===
-          categoryKey
+          targetCategory
       )
     }
 
@@ -224,6 +307,7 @@ export default function Category() {
     products,
     query,
     categoryKey,
+    categoryNameValue,
   ])
 
   // =========================
@@ -390,7 +474,9 @@ export default function Category() {
                   lineHeight: 1,
                 }}
               >
-                {info.emoji}
+                {categoryIcons[
+                  categoryKey
+                ] ?? '▦'}
               </span>
 
               <h1
@@ -398,7 +484,8 @@ export default function Category() {
                   margin: 0,
                 }}
               >
-                {info.title}
+                {categoryTitle ||
+                  'All Finds'}
               </h1>
             </div>
 
@@ -411,7 +498,7 @@ export default function Category() {
                 lineHeight: 1.7,
               }}
             >
-              {info.description}
+              {categoryDescription}
             </p>
           </div>
         </section>
@@ -445,7 +532,7 @@ export default function Category() {
 
         <Section
           id="category-products"
-          title={`${info.title} Finds`}
+          title={`${categoryTitle || 'All'} Finds`}
           eyebrow={`${filteredProducts.length} ${
             filteredProducts.length === 1
               ? 'product'
@@ -453,7 +540,9 @@ export default function Category() {
           } to explore`}
           icon={
             <span>
-              {info.emoji}
+              {categoryIcons[
+                categoryKey
+              ] ?? '▦'}
             </span>
           }
           products={filteredProducts}
@@ -596,16 +685,11 @@ export default function Category() {
                 gap: '10px',
               }}
             >
-              {Object.entries(
-                categoryInfo
-              ).map(
-                ([
-                  key,
-                  category,
-                ]) => (
+              {categories.map(
+                (category) => (
                   <Link
-                    key={key}
-                    to={`/category/${key}`}
+                    key={category.id}
+                    to={`/category/${category.slug}`}
                     style={{
                       display:
                         'inline-flex',
@@ -630,13 +714,44 @@ export default function Category() {
                     }}
                   >
                     <span>
-                      {category.emoji}
+                      {categoryIcons[
+                        category.slug
+                      ] ?? '▦'}
                     </span>
 
-                    {category.title}
+                    {category.name}
                   </Link>
                 )
               )}
+
+              <Link
+                to="/category/more"
+                style={{
+                  display:
+                    'inline-flex',
+                  alignItems:
+                    'center',
+                  gap: '7px',
+                  padding:
+                    '9px 13px',
+                  border:
+                    '1px solid var(--border)',
+                  borderRadius:
+                    '999px',
+                  background:
+                    '#fff',
+                  color:
+                    'inherit',
+                  textDecoration:
+                    'none',
+                  fontSize:
+                    '12px',
+                  fontWeight: 700,
+                }}
+              >
+                <span>▦</span>
+                All Finds
+              </Link>
             </div>
           </div>
         </section>
