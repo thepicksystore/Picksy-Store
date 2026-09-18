@@ -13,7 +13,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Settings,
   Tags,
   Trash2,
   Upload,
@@ -183,6 +182,12 @@ export default function Admin() {
     useState(false)
   const [analyticsView, setAnalyticsView] =
     useState<AnalyticsView>('month')
+  const [analyticsSummary, setAnalyticsSummary] = useState({
+    totalClicks: 0,
+    todayClicks: 0,
+    last7DaysClicks: 0,
+    last30DaysClicks: 0,
+  })
 
   const PRODUCTS_PER_PAGE = 10
 
@@ -279,24 +284,77 @@ export default function Admin() {
   async function loadAffiliateClicks() {
     setAnalyticsLoading(true)
 
-    const { data, error } = await supabase
-      .from('affiliate_clicks')
-      .select(
-        'id, product_id, marketplace, affiliate_url, clicked_at, referrer, user_agent, device_type',
-      )
-      .order('clicked_at', { ascending: false })
+    const now = new Date()
+    const today = new Date(now)
+    today.setHours(0, 0, 0, 0)
 
-    if (error) {
-      console.error(error)
+    const last7 = new Date(today)
+    last7.setDate(last7.getDate() - 6)
+
+    const last30 = new Date(today)
+    last30.setDate(last30.getDate() - 29)
+
+    const rangeStart =
+      analyticsView === 'day'
+        ? today
+        : analyticsView === 'week'
+          ? last7
+          : last30
+
+    const [rangeResult, totalResult, todayResult, last7Result, last30Result] =
+      await Promise.all([
+        supabase
+          .from('affiliate_clicks')
+          .select(
+            'id, product_id, marketplace, affiliate_url, clicked_at, referrer, user_agent, device_type',
+          )
+          .gte('clicked_at', rangeStart.toISOString())
+          .order('clicked_at', { ascending: false }),
+        supabase
+          .from('affiliate_clicks')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('affiliate_clicks')
+          .select('id', { count: 'exact', head: true })
+          .gte('clicked_at', today.toISOString()),
+        supabase
+          .from('affiliate_clicks')
+          .select('id', { count: 'exact', head: true })
+          .gte('clicked_at', last7.toISOString()),
+        supabase
+          .from('affiliate_clicks')
+          .select('id', { count: 'exact', head: true })
+          .gte('clicked_at', last30.toISOString()),
+      ])
+
+    const firstError =
+      rangeResult.error ||
+      totalResult.error ||
+      todayResult.error ||
+      last7Result.error ||
+      last30Result.error
+
+    if (firstError) {
+      console.error(firstError)
       showNotice(
         'error',
-        `Unable to load analytics: ${error.message}`,
+        `Unable to load analytics: ${firstError.message}`,
       )
       setAnalyticsLoading(false)
       return
     }
 
-    setAffiliateClicks((data ?? []) as AffiliateClick[])
+    setAffiliateClicks(
+      (rangeResult.data ?? []) as AffiliateClick[],
+    )
+
+    setAnalyticsSummary({
+      totalClicks: totalResult.count ?? 0,
+      todayClicks: todayResult.count ?? 0,
+      last7DaysClicks: last7Result.count ?? 0,
+      last30DaysClicks: last30Result.count ?? 0,
+    })
+
     setAnalyticsLoading(false)
   }
 
@@ -304,7 +362,7 @@ export default function Admin() {
     if (session && activeSection === 'analytics') {
       loadAffiliateClicks()
     }
-  }, [session, activeSection])
+  }, [session, activeSection, analyticsView])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -319,6 +377,12 @@ export default function Admin() {
     setEditingCategoryId(null)
     setCategoryName('')
     setAffiliateClicks([])
+    setAnalyticsSummary({
+      totalClicks: 0,
+      todayClicks: 0,
+      last7DaysClicks: 0,
+      last30DaysClicks: 0,
+    })
   }
 
   async function handleDelete(id: string) {
@@ -924,34 +988,15 @@ export default function Admin() {
   }, [affiliateClicks, analyticsView])
 
   const analyticsStats = useMemo(() => {
-    const now = new Date()
-    const today = new Date(now)
-    today.setHours(0, 0, 0, 0)
-
-    const last7 = new Date(today)
-    last7.setDate(last7.getDate() - 6)
-
-    const last30 = new Date(today)
-    last30.setDate(last30.getDate() - 29)
-
     const affiliateLinks = products.filter(
       (product) => Boolean(product.affiliateUrl?.trim()),
     ).length
 
     return {
-      totalClicks: affiliateClicks.length,
-      todayClicks: affiliateClicks.filter(
-        (click) => new Date(click.clicked_at) >= today,
-      ).length,
-      last7DaysClicks: affiliateClicks.filter(
-        (click) => new Date(click.clicked_at) >= last7,
-      ).length,
-      last30DaysClicks: affiliateClicks.filter(
-        (click) => new Date(click.clicked_at) >= last30,
-      ).length,
+      ...analyticsSummary,
       affiliateLinks,
     }
-  }, [affiliateClicks, products])
+  }, [analyticsSummary, products])
 
   const analyticsChart = useMemo(() => {
     const points: {
@@ -1295,7 +1340,6 @@ export default function Admin() {
               handleSectionChange('settings')
             }
           >
-            <Settings size={18} />
             Settings
           </button>
         </nav>
