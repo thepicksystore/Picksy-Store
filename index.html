@@ -97,6 +97,17 @@
     <title>Picksy — Trending & Affordable Finds</title>
   </head>
 
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var redirect = params.get('p');
+
+      if (redirect) {
+        window.history.replaceState(null, '', '/Picksy-Store' + redirect);
+      }
+    })();
+  </script>
+
   <body>
     <div id="root"></div>
 
