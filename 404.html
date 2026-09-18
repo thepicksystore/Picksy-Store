@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <title>Picksy</title>
+    <script>
+      (function () {
+        var base = '/Picksy-Store';
+        var path = window.location.pathname;
+        var relativePath = path.indexOf(base) === 0 ? path.slice(base.length) : path;
+        var target = relativePath + window.location.search + window.location.hash;
+
+        window.location.replace(
+          base + '/?p=' + encodeURIComponent(target || '/')
+        );
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
