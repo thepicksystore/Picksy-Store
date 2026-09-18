@@ -13,6 +13,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Settings,
   Tags,
   Trash2,
   Upload,
@@ -1340,6 +1341,7 @@ export default function Admin() {
               handleSectionChange('settings')
             }
           >
+            <Settings size={18} />
             Settings
           </button>
         </nav>
