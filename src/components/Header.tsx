@@ -197,7 +197,7 @@ export default function Header({
               <span className="header-action-icon">
                 <User size={30} strokeWidth={1.7} />
               </span>
-              <span>Admin</span>
+              <span>Account</span>
             </Link>
           </div>
         </div>
