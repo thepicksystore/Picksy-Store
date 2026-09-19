@@ -219,6 +219,7 @@ a{
   padding:29px 10px 26px;
   cursor:pointer;
   white-space:nowrap;
+  border-radius:10px;
 }
 
 .desktop-nav button:hover{
@@ -232,38 +233,22 @@ a{
   box-shadow:inset 0 -3px 0 #a61954;
 }
 
-.desktop-nav button{
-  border-radius:10px;
-}
-
 .desktop-nav button.active:after{
   display:none;
 }
 
-.desktop-nav .all-categories-button{
-  height:54px;
-  min-width:210px;
-  border:0;
-  border-radius:17px;
-  background:#8f1648;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-  padding:0 18px;
+.desktop-nav button.active{
+  color:#a61954;
+  background:#fff4f8;
+  box-shadow:inset 0 -3px 0 #a61954;
 }
 
-.desktop-nav .all-categories-button:hover,
-.desktop-nav .all-categories-button.active{
-  background:#76113b;
-  color:#fff;
+.desktop-nav button:hover{
+  color:#a61954;
+  background:#fff4f8;
 }
 
-.desktop-nav .all-categories-button:after{
+.desktop-nav button.active:after{
   display:none;
 }
 
