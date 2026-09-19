@@ -34,6 +34,8 @@ export default function ProductDetail() {
   const [loading, setLoading] =
     useState(true)
 
+  const [selectedImage, setSelectedImage] = useState(0)
+
   const [favorite, setFavorite] =
     useState(false)
 
@@ -97,7 +99,14 @@ export default function ProductDetail() {
             data.category,
 
           image:
-            data.image || '',
+            data.images?.[0] || data.image || '',
+
+          images:
+            data.images?.length
+              ? data.images
+              : data.image
+                ? [data.image]
+                : [],
 
           affiliateUrl:
             data.affiliate_url || '',
@@ -122,6 +131,7 @@ export default function ProductDetail() {
         }
 
         setProduct(mappedProduct)
+        setSelectedImage(0)
 
         // Load wishlist state
         setFavorite(
@@ -370,23 +380,41 @@ export default function ProductDetail() {
               PRODUCT IMAGE
           ========================= */}
 
-          <div className="detail-image">
-            {product.image ? (
-              <img
-                src={product.image}
-                alt={product.name}
-              />
-            ) : (
-              <div
-                style={{
-                  minHeight: '400px',
-                  display: 'grid',
-                  placeItems: 'center',
-                  textAlign: 'center',
-                  padding: '30px',
-                }}
-              >
-                No image available
+          <div className="detail-image-gallery">
+            <div className="detail-image">
+              {(product.images?.[selectedImage] || product.image) ? (
+                <img
+                  src={product.images?.[selectedImage] || product.image}
+                  alt={product.name}
+                />
+              ) : (
+                <div
+                  style={{
+                    minHeight: '400px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    textAlign: 'center',
+                    padding: '30px',
+                  }}
+                >
+                  No image available
+                </div>
+              )}
+            </div>
+
+            {(product.images?.length ?? 0) > 1 && (
+              <div className="detail-thumbnails" aria-label="Product images">
+                {product.images?.map((src, index) => (
+                  <button
+                    key={src}
+                    type="button"
+                    className={`detail-thumbnail ${selectedImage === index ? 'is-selected' : ''}`}
+                    onClick={() => setSelectedImage(index)}
+                    aria-label={`View image ${index + 1}`}
+                  >
+                    <img src={src} alt="" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
