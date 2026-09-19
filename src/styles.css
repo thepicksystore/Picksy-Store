@@ -5079,3 +5079,37 @@ body,
     grid-template-columns:repeat(3,1fr);
   }
 }
+
+
+/* Interactive hero slider dots */
+.hero-slider-dots button{
+  appearance:none;
+  -webkit-appearance:none;
+  width:10px;
+  height:10px;
+  min-width:10px;
+  padding:0;
+  margin:0;
+  border:0;
+  border-radius:50%;
+  background:#e8b8cb;
+  cursor:pointer;
+  transition:transform .2s ease, background .2s ease, width .2s ease;
+}
+
+.hero-slider-dots button:hover{
+  transform:scale(1.18);
+  background:#cf7199;
+}
+
+.hero-slider-dots button.active{
+  width:11px;
+  min-width:11px;
+  height:11px;
+  background:var(--wine);
+}
+
+.hero-slider-dots button:focus-visible{
+  outline:2px solid var(--wine);
+  outline-offset:4px;
+}
