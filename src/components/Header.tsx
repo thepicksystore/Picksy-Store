@@ -10,6 +10,7 @@ import {
   User,
   Menu,
   X,
+  ChevronDown,
 } from 'lucide-react'
 
 import { Link } from 'react-router-dom'
@@ -19,6 +20,7 @@ type Props = {
 }
 
 type NavKey =
+  | 'home'
   | 'best'
   | 'new'
   | 'trending'
@@ -32,7 +34,7 @@ export default function Header({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [favoriteCount, setFavoriteCount] = useState(0)
-  const [activeNav, setActiveNav] = useState<NavKey | null>(null)
+  const [activeNav, setActiveNav] = useState<NavKey | null>('home')
 
   const updateFavoriteCount = () => {
     try {
@@ -116,7 +118,7 @@ export default function Header({
 
   const goHome = () => {
     setOpen(false)
-    setActiveNav(null)
+    setActiveNav('home')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -195,7 +197,7 @@ export default function Header({
               <span className="header-action-icon">
                 <User size={30} strokeWidth={1.7} />
               </span>
-              <span>Login / Sign Up</span>
+              <span>Admin</span>
             </Link>
           </div>
         </div>
@@ -203,7 +205,25 @@ export default function Header({
 
       <div className="header-nav-row">
         <div className="container header-nav-inner">
+          <button
+            type="button"
+            className={`all-categories-button ${activeNav === 'categories' ? 'active' : ''}`}
+            onClick={() => scrollToId('categories', 'categories')}
+          >
+            <Menu size={20} />
+            <span>All Categories</span>
+            <ChevronDown size={18} />
+          </button>
+
           <nav className={`desktop-nav ${open ? 'mobile-open' : ''}`}>
+            <button
+              type="button"
+              className={activeNav === 'home' ? 'active' : ''}
+              onClick={goHome}
+            >
+              Home
+            </button>
+
             <button
               type="button"
               className={activeNav === 'best' ? 'active' : ''}
