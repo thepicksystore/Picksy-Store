@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#8f0038"/><stop offset="1" stop-color="#3b0018"/></radialGradient>
+  <linearGradient id="pink" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8bb8"/><stop offset="1" stop-color="#e62c78"/></linearGradient>
+  <linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffaf2"/><stop offset="1" stop-color="#ead8c7"/></linearGradient>
+</defs>
+<circle cx="256" cy="256" r="244" fill="url(#bg)" stroke="#c92b68" stroke-width="7"/>
+<g transform="translate(0,-8)">
+  <rect x="176" y="106" width="160" height="142" rx="34" fill="#bd0b51"/>
+  <path d="M214 111v-25c0-27 18-46 42-46s42 19 42 46v25" fill="none" stroke="#f5d79f" stroke-width="16" stroke-linecap="round"/>
+  <path d="M159 156h42M151 181h50M159 206h42" stroke="url(#pink)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M202 142h25l16 70h62" fill="none" stroke="url(#cream)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M259 163l22 22 47-57" fill="none" stroke="url(#pink)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="245" cy="229" r="10" fill="#fffaf2"/><circle cx="302" cy="229" r="10" fill="#fffaf2"/>
+</g>
+<text x="256" y="321" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-size="70" font-weight="700" letter-spacing="2" fill="#fffaf2">PICKSY</text>
+<g fill="#f15b91">
+  <rect x="104" y="350" width="82" height="6" rx="3"/><rect x="326" y="350" width="82" height="6" rx="3"/>
+</g>
+<text x="256" y="370" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="9" fill="#f15b91">STORE</text>
+<text x="256" y="407" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="500" letter-spacing="4" fill="#fffaf2">CURATED FOR YOU</text>
+</svg>
