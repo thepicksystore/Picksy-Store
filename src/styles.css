@@ -5453,3 +5453,107 @@ body,
   .detail-thumbnail{width:62px;height:62px;flex-basis:62px}
   .admin-image-thumb{width:92px;height:92px}
 }
+
+
+/* =========================================================
+   PICKSY ADMIN - WINE BRAND THEME
+   ========================================================= */
+.admin-page,
+.admin-login-page{
+  --purple:var(--wine);
+  --purple2:var(--wine-dark);
+}
+
+.admin-page .admin-sidebar{
+  background:linear-gradient(180deg,#3a1326 0%,#4b1730 58%,#35101f 100%);
+}
+
+.admin-brand-icon,
+.admin-login-icon{
+  background:linear-gradient(135deg,var(--wine),#d9789e);
+  box-shadow:0 7px 20px rgba(166,25,84,.22);
+}
+
+.admin-nav button:hover,
+.admin-nav button.active,
+.admin-logout:hover{
+  background:#64163a;
+  color:#fff;
+}
+
+.admin-add-btn,
+.admin-primary-btn,
+.admin-empty button{
+  background:linear-gradient(100deg,var(--wine),#c34c7d);
+  box-shadow:0 8px 20px rgba(166,25,84,.18);
+}
+
+.admin-add-btn:hover,
+.admin-primary-btn:hover{
+  filter:brightness(1.04);
+}
+
+.admin-search-box:focus-within,
+.admin-filter-row select:focus,
+.admin-field input:focus,
+.admin-field select:focus,
+.admin-field textarea:focus,
+.admin-login-card input:focus{
+  border-color:#c35a86;
+  box-shadow:0 0 0 3px rgba(166,25,84,.08);
+}
+
+.clear-filter-btn,
+.admin-actions button:hover,
+.admin-modal-header>button:hover,
+.upload-button{
+  color:var(--wine);
+}
+
+.admin-actions button:hover{
+  border-color:#e5a9c2;
+  background:var(--wine-soft);
+}
+
+.admin-image-upload{
+  border-color:#e8b8cb;
+  background:#fff8fb;
+  color:var(--wine);
+}
+
+.upload-button{
+  border-color:#e5a9c2;
+}
+
+.upload-button:hover{
+  background:var(--wine-soft);
+}
+
+.admin-toggle-option:hover,
+.admin-toggle-option.is-on{
+  border-color:#e5a9c2;
+}
+
+.admin-toggle-option.is-on{
+  background:var(--wine-soft);
+}
+
+.admin-toggle-option.is-on .admin-switch{
+  background:var(--wine);
+  box-shadow:0 4px 10px rgba(166,25,84,.18);
+}
+
+.admin-login-icon{
+  color:#fff;
+}
+
+.admin-category-input-row input:focus{
+  border-color:#c35a86;
+  box-shadow:0 0 0 3px rgba(166,25,84,.08);
+}
+
+.admin-category-actions .edit-btn:hover{
+  color:var(--wine);
+  background:var(--wine-soft);
+  border-color:#e5a9c2;
+}
