@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff, LockKeyhole, LogIn, Mail, UserPlus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 type Mode = 'login' | 'signup'
 
 export default function Auth() {
+  const navigate = useNavigate()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -75,7 +77,9 @@ export default function Auth() {
         )
       } else {
         setPassword('')
-        setMessage('Login successful.')
+        setLoading(false)
+        navigate('/')
+        return
       }
     } else {
       const { data, error: signupError } = await supabase.auth.signUp({
@@ -94,7 +98,9 @@ export default function Auth() {
         setConfirmPassword('')
 
         if (data.session) {
-          setMessage('Account created successfully.')
+          setLoading(false)
+          navigate('/')
+          return
         } else {
           setMessage(
             'Account created. Please check your email to confirm your account.',
