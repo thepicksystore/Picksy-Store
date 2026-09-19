@@ -1026,8 +1026,15 @@ a{
 .footer-brand{
   height:auto;
   display:inline-flex;
-  gap:11px;
   color:#fff;
+}
+
+.footer-brand-logo{
+  width:92px;
+  height:92px;
+  display:block;
+  object-fit:contain;
+  border-radius:50%;
 }
 
 .footer-brand .brand-mark{
