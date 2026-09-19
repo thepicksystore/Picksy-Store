@@ -10,7 +10,6 @@ import {
   User,
   Menu,
   X,
-  ChevronDown,
 } from 'lucide-react'
 
 import { Link } from 'react-router-dom'
@@ -59,11 +58,47 @@ export default function Header({
       updateFavoriteCount
     )
 
+    const sections: Array<{ id: string; key: NavKey }> = [
+      { id: 'under299', key: 'best' },
+      { id: 'new', key: 'new' },
+      { id: 'trending', key: 'trending' },
+      { id: 'picks', key: 'picks' },
+      { id: 'categories', key: 'categories' },
+      { id: 'footer', key: 'contact' },
+    ]
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+
+        if (visible) {
+          const section = sections.find(
+            (item) => item.id === visible.target.id
+          )
+          if (section) {
+            setActiveNav(section.key)
+          }
+        }
+      },
+      {
+        rootMargin: '-120px 0px -55% 0px',
+        threshold: [0.1, 0.25, 0.5],
+      }
+    )
+
+    sections.forEach(({ id }) => {
+      const element = document.getElementById(id)
+      if (element) observer.observe(element)
+    })
+
     return () => {
       window.removeEventListener(
         'picksy-favorites-changed',
         updateFavoriteCount
       )
+      observer.disconnect()
     }
   }, [])
 
@@ -203,16 +238,10 @@ export default function Header({
 
             <button
               type="button"
-              className={
-                activeNav === 'categories'
-                  ? 'all-categories-button active'
-                  : 'all-categories-button'
-              }
+              className={activeNav === 'categories' ? 'active' : ''}
               onClick={() => scrollToId('categories', 'categories')}
             >
-              <Menu size={21} />
-              <span>All Categories</span>
-              <ChevronDown size={18} />
+              All Categories
             </button>
 
             <button
