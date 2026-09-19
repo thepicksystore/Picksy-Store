@@ -1,4 +1,4 @@
-import { Instagram, ShoppingBag, Youtube } from 'lucide-react'
+import { Instagram, Youtube } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function PinterestIcon() {
@@ -10,10 +10,6 @@ function PinterestIcon() {
       />
     </svg>
   )
-}
-
-function ShoppingBagIcon() {
-  return <ShoppingBag size={18} strokeWidth={2.5} />
 }
 
 export default function Footer() {
