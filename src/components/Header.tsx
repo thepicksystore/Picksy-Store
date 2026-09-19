@@ -209,13 +209,13 @@ export default function Header({
             <Link
               to="/auth"
               className="header-action-link"
-              aria-label="Admin Login or Sign Up"
+              aria-label="Login or Sign Up"
               onClick={() => setOpen(false)}
             >
               <span className="header-action-icon">
                 <User size={30} strokeWidth={1.7} />
               </span>
-              <span>Admin</span>
+              <span>Login / Sign Up</span>
             </Link>
           </div>
         </div>
