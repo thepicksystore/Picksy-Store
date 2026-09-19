@@ -659,15 +659,22 @@ a{
   right:8px;
   top:8px;
   z-index:2;
-  width:28px;
-  height:28px;
-  border:1px solid #e8e8ef;
+  width:30px;
+  height:30px;
+  border:1px solid var(--wine-border);
   background:#fff;
   border-radius:50%;
   display:grid;
   place-items:center;
-  color:#303650;
+  color:var(--wine);
   cursor:pointer;
+}
+
+.card-heart:hover,
+.card-heart.is-favorite{
+  background:var(--wine-soft);
+  border-color:#e5a9c2;
+  color:var(--wine);
 }
 
 .product-content{
@@ -1166,6 +1173,22 @@ a{
 
 .footer-social-pill svg{
   color:#f0a9c1;
+}
+
+.footer-social-pill{
+  text-decoration:none;
+}
+
+.footer-social-pill:hover{
+  color:#fff;
+  background:rgba(255,255,255,.11);
+  border-color:rgba(245,211,224,.3);
+  transform:translateY(-1px);
+}
+
+.footer-credit{
+  color:#e7b8c9;
+  font-weight:700;
 }
 
 .footer-bottom{
