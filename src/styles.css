@@ -793,22 +793,28 @@ a{
   cursor:pointer;
 }
 
-.budget-banner{
+.budget-deals{
   margin-top:48px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+
+.budget-card{
+  min-height:220px;
   border-radius:18px;
   background:linear-gradient(105deg,#fff6f9 0%,#fffafc 48%,#f8f4ff 100%);
   border:1px solid var(--wine-border);
-  min-height:128px;
-  padding:22px 25px;
+  padding:22px;
   display:grid;
-  grid-template-columns:minmax(260px,1fr) auto auto;
+  grid-template-columns:minmax(0,1fr) auto;
   align-items:center;
-  gap:22px;
+  gap:18px;
   overflow:hidden;
   box-shadow:0 10px 26px rgba(94,30,57,.05);
 }
 
-.budget-copy{
+.budget-card-copy{
   min-width:0;
 }
 
@@ -824,21 +830,22 @@ a{
   font-weight:800;
 }
 
-.budget-banner h2{
-  font:800 25px 'Plus Jakarta Sans';
-  margin:6px 0 4px;
+.budget-card h2{
+  font:800 22px 'Plus Jakarta Sans';
+  margin:8px 0 5px;
   color:#351127;
   letter-spacing:-.5px;
 }
 
-.budget-banner p{
+.budget-card p{
   margin:0;
   color:#756a73;
   font-size:11px;
+  line-height:1.45;
 }
 
-.budget-banner>button,
-.festival-banner button{
+.budget-cta{
+  margin-top:14px;
   border:0;
   background:var(--wine);
   color:#fff;
@@ -854,16 +861,16 @@ a{
   box-shadow:0 7px 16px rgba(166,25,84,.15);
 }
 
-.budget-banner>button:hover{
+.budget-cta:hover{
   background:var(--wine-dark);
   transform:translateY(-1px);
 }
 
 .budget-items{
-  display:flex;
-  align-items:center;
+  display:grid;
+  grid-template-columns:repeat(2,66px);
   gap:9px;
-  min-width:0;
+  min-width:141px;
 }
 
 .budget-item{
@@ -919,41 +926,35 @@ a{
   font-weight:700;
 }
 
-.festival-banner{
-  margin-top:14px;
-  min-height:112px;
-  border-radius:17px;
-  padding:20px 25px;
-  background:linear-gradient(100deg,#111a4b,#37245e);
-  color:#fff;
-  display:flex;
-  align-items:center;
-  overflow:hidden;
-  position:relative;
+@media (max-width:900px){
+  .budget-deals{
+    grid-template-columns:1fr;
+  }
 }
 
-.festival-banner span{
-  font-size:9px;
-  font-weight:800;
-  color:#ffd36c;
-  letter-spacing:.7px;
-}
+@media (max-width:560px){
+  .budget-deals{
+    margin-top:32px;
+    gap:14px;
+  }
 
-.festival-banner h2{
-  font:700 20px 'Plus Jakarta Sans';
-  margin:6px 0 0;
-}
+  .budget-card{
+    min-height:0;
+    padding:18px;
+    grid-template-columns:1fr;
+    gap:15px;
+  }
 
-.festival-banner button{
-  background:#ffb927;
-  color:#251e0e;
-}
+  .budget-card h2{
+    font-size:20px;
+  }
 
-.festival-diyas{
-  font-size:42px;
-  opacity:.85;
-  margin-left:30px;
-  white-space:nowrap;
+  .budget-items{
+    grid-template-columns:repeat(4,66px);
+    min-width:0;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
 }
 
 .trust-strip{
