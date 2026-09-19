@@ -76,36 +76,15 @@ a{
 .brand{
   display:flex;
   align-items:center;
-  gap:10px;
   min-width:max-content;
+  height:64px;
 }
 
-.brand-mark{
-  width:38px;
-  height:38px;
-  border-radius:12px;
-  background:linear-gradient(135deg,#6840ff,#b47cff);
-  display:grid;
-  place-items:center;
-  color:#fff;
-  box-shadow:0 7px 20px #6740ff2b;
-  transform:rotate(-6deg);
-}
-
-.brand strong{
-  font:800 24px 'Plus Jakarta Sans';
-  letter-spacing:-1.2px;
+.brand-logo{
+  width:64px;
+  height:64px;
   display:block;
-  line-height:1;
-}
-
-.brand small{
-  display:block;
-  color:#747a93;
-  font-size:9px;
-  font-weight:700;
-  letter-spacing:.2px;
-  margin-top:4px;
+  object-fit:contain;
 }
 
 .desktop-nav{
