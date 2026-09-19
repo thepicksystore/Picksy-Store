@@ -370,39 +370,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="hero-benefits container" aria-label="Picksy benefits">
-          <div>
-            <span><Truck size={22} /></span>
-            <div>
-              <b>Fast &amp; Reliable Delivery</b>
-              <small>Get your products on time</small>
-            </div>
-          </div>
 
-          <div>
-            <span><ShieldCheck size={22} /></span>
-            <div>
-              <b>Secure Payments</b>
-              <small>100% safe &amp; protected</small>
-            </div>
-          </div>
-
-          <div>
-            <span><BadgeCheck size={22} /></span>
-            <div>
-              <b>Top Quality Products</b>
-              <small>Handpicked with care</small>
-            </div>
-          </div>
-
-          <div>
-            <span><Headphones size={22} /></span>
-            <div>
-              <b>24/7 Customer Support</b>
-              <small>We're here to help</small>
-            </div>
-          </div>
-        </section>
 
         {/* =========================
             CATEGORIES
