@@ -209,20 +209,24 @@ a{
   height:77px;
 }
 
-.desktop-nav a{
+.desktop-nav button{
+  border:0;
+  background:transparent;
   font-size:16px;
   font-weight:600;
   color:#171a2b;
   position:relative;
   padding:29px 10px 26px;
+  cursor:pointer;
+  white-space:nowrap;
 }
 
-.desktop-nav a:hover,
-.desktop-nav a.active{
+.desktop-nav button:hover,
+.desktop-nav button.active{
   color:#a61954;
 }
 
-.desktop-nav a.active:after{
+.desktop-nav button.active:after{
   content:"";
   height:3px;
   width:70px;
@@ -4110,7 +4114,6 @@ body,
     gap:8px;
   }
 
-  .desktop-nav a,
   .desktop-nav button{
     font-size:14px;
     padding-left:6px;
