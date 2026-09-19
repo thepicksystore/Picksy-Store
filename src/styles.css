@@ -5378,3 +5378,29 @@ body,
   outline:2px solid var(--wine);
   outline-offset:4px;
 }
+
+
+/* Wishlist brand styling */
+.favorite-count{
+  background:var(--wine);
+}
+
+.card-heart.is-favorite,
+.secondary-cta.is-favorite{
+  color:var(--wine);
+}
+
+.secondary-cta.is-favorite{
+  border-color:#e5a9c2;
+  background:var(--wine-soft);
+}
+
+.favorites-icon{
+  background:var(--wine-soft);
+  color:var(--wine);
+}
+
+.favorites-empty-icon{
+  color:var(--wine);
+  background:var(--wine-soft);
+}
