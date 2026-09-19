@@ -546,7 +546,7 @@ export default function Home() {
         ========================= */}
 
         <section
-          id="under299"
+          id="budget-deals"
           className="budget-deals container"
         >
           {dealSections.map((deal) => (
