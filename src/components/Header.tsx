@@ -7,7 +7,6 @@ import {
   Heart,
   Menu,
   Search,
-  ShoppingBag,
   User,
   X,
 } from 'lucide-react'
@@ -93,8 +92,13 @@ export default function Header({
           <img
             className="brand-logo"
             src={`${import.meta.env.BASE_URL}picksy-logo.svg`}
-            alt="Picksy Store"
+            alt=""
           />
+
+          <span className="brand-copy">
+            <strong>Picksy</strong>
+            <small>Curated for You</small>
+          </span>
         </Link>
 
         <nav
