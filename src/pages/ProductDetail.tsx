@@ -218,17 +218,8 @@ export default function ProductDetail() {
     const referrer =
       document.referrer || ''
 
-    // Open the affiliate destination FIRST.
-    // This keeps the action directly connected
-    // to the user's click and avoids popup blockers.
-    window.open(
-      affiliateUrl,
-      '_blank',
-      'noopener,noreferrer'
-    )
-
     // Record the affiliate click in the background.
-    // We intentionally do not await this request.
+    // The affiliate destination is a normal anchor click.
     void supabase
       .from('affiliate_clicks')
       .insert({
@@ -501,15 +492,16 @@ export default function ProductDetail() {
               {/* AFFILIATE LINK */}
 
               {product.affiliateUrl ? (
-                <button
-                  type="button"
+                <a
                   className="primary-cta"
-                  onClick={
-                    handleAffiliateClick
-                  }
+                  href={product.affiliateUrl.trim()}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={handleAffiliateClick}
+                  aria-label={'View deal for ' + product.name}
                 >
                   View Deal →
-                </button>
+                </a>
               ) : (
                 <button
                   className="primary-cta"
