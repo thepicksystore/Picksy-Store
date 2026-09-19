@@ -45,6 +45,7 @@ type DbProduct = {
   marketplace: Marketplace
   category: string
   image: string | null
+  images: string[] | null
   affiliate_url: string | null
   badge: string | null
   description: string | null
@@ -77,6 +78,7 @@ const emptyProduct: Product = {
   marketplace: 'Amazon',
   category: 'Home',
   image: '',
+  images: [],
   affiliateUrl: '',
   badge: '',
   description: '',
@@ -96,7 +98,8 @@ function dbToProduct(row: DbProduct): Product {
     reviews: String(row.reviews ?? 0),
     marketplace: row.marketplace,
     category: row.category,
-    image: row.image ?? '',
+    image: row.image ?? row.images?.[0] ?? '',
+    images: row.images ?? (row.image ? [row.image] : []),
     affiliateUrl: row.affiliate_url ?? '',
     badge: row.badge ?? '',
     description: row.description ?? '',
@@ -116,7 +119,8 @@ function productToDb(product: Product) {
     reviews: Number(product.reviews) || 0,
     marketplace: product.marketplace,
     category: product.category,
-    image: product.image || null,
+    image: product.images?.[0] || product.image || null,
+    images: product.images ?? (product.image ? [product.image] : []),
     affiliate_url: product.affiliateUrl?.trim() || null,
     badge: product.badge?.trim() || null,
     description: product.description?.trim() || null,
@@ -3163,10 +3167,15 @@ function ProductForm({
         .from('product-images')
         .getPublicUrl(fileName)
 
-    updateField(
-      'image',
-      data.publicUrl,
-    )
+    setForm((current) => {
+      const nextImages = [...(current.images ?? [])]
+      nextImages.push(data.publicUrl)
+      return {
+        ...current,
+        image: nextImages[0] ?? '',
+        images: nextImages,
+      }
+    })
 
     setUploading(false)
   }
@@ -3439,63 +3448,69 @@ function ProductForm({
               </label>
 
               <div className="admin-image-upload">
-                {form.image ? (
-                  <img
-                    src={form.image}
-                    alt={
-                      form.name ||
-                      'Product'
-                    }
-                  />
+                {(form.images ?? []).length > 0 ? (
+                  <div className="admin-image-gallery">
+                    {(form.images ?? []).map((src, index) => (
+                      <div className="admin-image-thumb" key={src}>
+                        <img src={src} alt={`${form.name || 'Product'} image ${index + 1}`} />
+                        <div className="admin-image-thumb-actions">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((current) => {
+                                const images = (current.images ?? []).filter((_, i) => i !== index)
+                                return {
+                                  ...current,
+                                  images,
+                                  image: images[0] ?? '',
+                                }
+                              })
+                            }}
+                            disabled={isBusy}
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        {index === 0 && (
+                          <span className="admin-image-main-label">Main</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="admin-image-placeholder">
                     <ImagePlus size={30} />
-
                     <div>
-                      <strong>
-                        No image selected
-                      </strong>
-
-                      <small>
-                        Upload a product
-                        image
-                      </small>
+                      <strong>No images selected</strong>
+                      <small>Add one or more product images</small>
                     </div>
                   </div>
                 )}
 
-                <label
-                  className={`upload-button ${
-                    isBusy
-                      ? 'is-disabled'
-                      : ''
-                  }`}
-                >
+                <label className={`upload-button ${
+                  isBusy ? 'is-disabled' : ''
+                }`}>
                   <Upload size={17} />
-
-                  {uploading
-                    ? 'Uploading...'
-                    : 'Upload Image'}
-
+                  {uploading ? 'Uploading...' : 'Add Image'}
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     hidden
                     disabled={isBusy}
-                    onChange={(e) => {
-                      const file =
-                        e.target.files?.[0]
-
-                      if (file) {
-                        uploadImage(
-                          file,
-                        )
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files ?? [])
+                      for (const file of files) {
+                        await uploadImage(file)
                       }
-
                       e.target.value = ''
                     }}
                   />
                 </label>
+                <small className="admin-upload-help">
+                  First image is used as the main product image.
+                </small>
               </div>
             </div>
           </div>
