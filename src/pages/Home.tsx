@@ -8,6 +8,7 @@ import {
   Youtube,
   ShieldCheck,
   Sparkles,
+  ShoppingBag,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
