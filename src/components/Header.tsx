@@ -4,7 +4,7 @@ import {
 } from 'react'
 
 import {
-  BookmarkHeart,
+  Bookmark,
   Search,
   ShoppingCart,
   User,
@@ -184,7 +184,7 @@ export default function Header({
               onClick={() => setOpen(false)}
             >
               <span className="header-action-icon">
-                <BookmarkHeart
+                <Bookmark
                   size={30}
                   strokeWidth={1.7}
                   fill={favoriteCount > 0 ? 'currentColor' : 'none'}
