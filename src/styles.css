@@ -795,62 +795,128 @@ a{
 
 .budget-banner{
   margin-top:48px;
-  border-radius:17px;
-  background:linear-gradient(100deg,#efffe8,#f6fff2);
-  border:1px solid #d9f4ce;
-  min-height:110px;
-  padding:20px 25px;
-  display:flex;
+  border-radius:18px;
+  background:linear-gradient(105deg,#fff6f9 0%,#fffafc 48%,#f8f4ff 100%);
+  border:1px solid var(--wine-border);
+  min-height:128px;
+  padding:22px 25px;
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) auto auto;
   align-items:center;
-  gap:25px;
+  gap:22px;
   overflow:hidden;
+  box-shadow:0 10px 26px rgba(94,30,57,.05);
+}
+
+.budget-copy{
+  min-width:0;
 }
 
 .budget-pill{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #efd9e4;
+  color:var(--wine);
   font-size:9px;
-  color:#298d24;
   font-weight:800;
 }
 
 .budget-banner h2{
   font:800 25px 'Plus Jakarta Sans';
-  margin:3px 0;
+  margin:6px 0 4px;
+  color:#351127;
+  letter-spacing:-.5px;
 }
 
 .budget-banner p{
   margin:0;
-  color:#66705e;
+  color:#756a73;
   font-size:11px;
 }
 
 .budget-banner>button,
 .festival-banner button{
-  margin-left:auto;
   border:0;
-  background:var(--purple);
+  background:var(--wine);
   color:#fff;
-  border-radius:8px;
-  padding:10px 14px;
+  border-radius:10px;
+  padding:11px 15px;
   font-size:10px;
   font-weight:800;
   display:flex;
   align-items:center;
-  gap:5px;
+  gap:6px;
   cursor:pointer;
+  white-space:nowrap;
+  box-shadow:0 7px 16px rgba(166,25,84,.15);
+}
+
+.budget-banner>button:hover{
+  background:var(--wine-dark);
+  transform:translateY(-1px);
 }
 
 .budget-items{
   display:flex;
-  gap:8px;
+  align-items:center;
+  gap:9px;
+  min-width:0;
 }
 
-.budget-items img{
-  width:60px;
-  height:60px;
+.budget-item{
+  width:66px;
+  height:82px;
+  position:relative;
+  flex:0 0 66px;
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff;
+  border:2px solid #fff;
+  box-shadow:0 5px 14px rgba(94,30,57,.10);
+}
+
+.budget-item img,
+.budget-item-fallback{
+  width:100%;
+  height:100%;
   object-fit:cover;
-  border-radius:9px;
-  border:3px solid #fff;
-  box-shadow:0 3px 10px #45631c18;
+}
+
+.budget-item-fallback{
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(145deg,#fff0f6,#f3ecff);
+  color:var(--wine);
+  font-size:28px;
+}
+
+.budget-item-fallback.visible{
+  display:flex;
+}
+
+.budget-item-price{
+  position:absolute;
+  left:5px;
+  right:5px;
+  bottom:5px;
+  padding:4px 5px;
+  border-radius:7px;
+  background:rgba(53,17,39,.82);
+  color:#fff;
+  text-align:center;
+  font-size:9px;
+  font-weight:800;
+}
+
+.budget-empty{
+  min-width:170px;
+  color:#9a7d8a;
+  font-size:10px;
+  font-weight:700;
 }
 
 .festival-banner{
