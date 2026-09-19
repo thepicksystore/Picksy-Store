@@ -121,7 +121,7 @@ export default function ProductDetail() {
 
         setProduct(mappedProduct)
 
-        // Load favorite state
+        // Load wishlist state
         setFavorite(
           isFavorite(data.id)
         )
@@ -134,7 +134,7 @@ export default function ProductDetail() {
   }, [id])
 
   // =========================
-  // LISTEN FOR FAVORITE CHANGES
+  // LISTEN FOR WISHLIST CHANGES
   // =========================
 
   useEffect(() => {
@@ -160,7 +160,7 @@ export default function ProductDetail() {
   }, [id])
 
   // =========================
-  // TOGGLE FAVORITE
+  // TOGGLE WISHLIST
   // =========================
 
   const handleFavorite = () => {
@@ -536,8 +536,8 @@ export default function ProductDetail() {
                 />
 
                 {favorite
-                  ? 'Saved'
-                  : 'Save'}
+                  ? 'Remove from Wishlist'
+                  : 'Add to Wishlist'}
               </button>
 
               {/* SHARE */}
