@@ -9,7 +9,6 @@ import {
   LogOut,
   MousePointerClick,
   RefreshCw,
-  Package,
   Pencil,
   Plus,
   Search,
