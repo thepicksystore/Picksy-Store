@@ -4,7 +4,7 @@ import {
 } from 'react'
 
 import {
-  Bookmark,
+  Heart,
   Search,
   ShoppingCart,
   User,
@@ -33,31 +33,31 @@ export default function Header({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [favoriteCount, setFavoriteCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
   const [activeNav, setActiveNav] = useState<NavKey | null>('home')
 
-  const updateFavoriteCount = () => {
+  const updateWishlistCount = () => {
     try {
       const stored = localStorage.getItem('picksy_favorites')
 
       if (!stored) {
-        setFavoriteCount(0)
+        setWishlistCount(0)
         return
       }
 
       const parsed = JSON.parse(stored)
-      setFavoriteCount(Array.isArray(parsed) ? parsed.length : 0)
+      setWishlistCount(Array.isArray(parsed) ? parsed.length : 0)
     } catch {
-      setFavoriteCount(0)
+      setWishlistCount(0)
     }
   }
 
   useEffect(() => {
-    updateFavoriteCount()
+    updateWishlistCount()
 
     window.addEventListener(
       'picksy-favorites-changed',
-      updateFavoriteCount
+      updateWishlistCount
     )
 
     const sections: Array<{ id: string; key: NavKey }> = [
@@ -98,7 +98,7 @@ export default function Header({
     return () => {
       window.removeEventListener(
         'picksy-favorites-changed',
-        updateFavoriteCount
+        updateWishlistCount
       )
       observer.disconnect()
     }
@@ -176,26 +176,26 @@ export default function Header({
 
           <div className="header-top-actions">
             <Link
-              to="/favorites"
+              to="/wishlist"
               className="header-action-link"
               aria-label={
-                `Favorites${favoriteCount ? ` (${favoriteCount})` : ''}`
+                `Wishlist${wishlistCount ? ` (${wishlistCount})` : ''}`
               }
               onClick={() => setOpen(false)}
             >
               <span className="header-action-icon">
-                <Bookmark
+                <Heart
                   size={30}
                   strokeWidth={1.7}
-                  fill={favoriteCount > 0 ? 'currentColor' : 'none'}
+                  fill={wishlistCount > 0 ? 'currentColor' : 'none'}
                 />
-                {favoriteCount > 0 && (
+                {wishlistCount > 0 && (
                   <span className="favorite-count">
-                    {favoriteCount > 99 ? '99+' : favoriteCount}
+                    {wishlistCount > 99 ? '99+' : wishlistCount}
                   </span>
                 )}
               </span>
-              <span>Favorites</span>
+              <span>Wishlist</span>
             </Link>
 
             <button className="header-action-link" type="button" aria-label="Cart">
