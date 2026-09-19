@@ -765,19 +765,11 @@ export default function Category() {
         <div className="container footer-grid">
           <div>
             <div className="brand footer-brand">
-              <span className="brand-mark">
-                <ShoppingBagIcon />
-              </span>
-
-              <span>
-                <strong>
-                  Picksy
-                </strong>
-
-                <small>
-                  Curated for You
-                </small>
-              </span>
+              <img
+                className="footer-brand-logo"
+                src={import.meta.env.BASE_URL + 'picksy-logo.svg'}
+                alt="Picksy Store"
+              />
             </div>
 
             <p>
