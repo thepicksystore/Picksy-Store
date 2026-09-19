@@ -10,6 +10,7 @@ export type Product = {
   marketplace: Marketplace
   category: string
   image: string
+  images?: string[]
   affiliateUrl?: string
   badge?: string
   description: string
