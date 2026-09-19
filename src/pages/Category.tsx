@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ShoppingBag } from 'lucide-react'
 import {
   Link,
   useNavigate,
