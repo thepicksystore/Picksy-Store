@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
+  BadgeCheck,
+  Headphones,
   Search,
+  ShieldCheck,
   ShoppingBag,
+  Truck,
   Zap,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -314,146 +318,88 @@ export default function Home() {
             HERO
         ========================= */}
 
-        <section className="hero container">
-          <div className="hero-copy">
-            <span className="pill">
-              <Zap
-                size={14}
-                fill="currentColor"
-              />
+        <section className="hero hero-v2 container">
+          <div className="hero-v2-copy">
+            <span className="hero-kicker">
+              <Zap size={15} fill="currentColor" />
               Trending Finds
             </span>
 
             <h1>
-              Discover <span>Better</span>
+              Big Savings
               <br />
-              Finds.
+              <span>Better Choices</span>
             </h1>
 
-            <p>
-              Trending, affordable & useful
-              products —{' '}
-              <b>curated for you.</b>
-            </p>
+            <div className="hero-subline">
+              <span>Quality products</span>
+              <i />
+              <span>Affordable prices</span>
+              <i />
+              <span>All in one place</span>
+            </div>
 
-            <form
-              className="hero-search"
-              onSubmit={(e) => {
-                e.preventDefault()
-
-                document
-                  .getElementById(
-                    'discover'
-                  )
-                  ?.scrollIntoView({
-                    behavior: 'smooth',
-                  })
-              }}
+            <button
+              type="button"
+              className="hero-shop-btn"
+              onClick={() =>
+                document.getElementById('trending')?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                })
+              }
             >
-              <Search size={20} />
+              Shop Now
+              <ArrowRight size={19} />
+            </button>
+          </div>
 
-              <input
-                value={
-                  query === 'under299'
-                    ? ''
-                    : query
-                }
-                onChange={(e) =>
-                  setQuery(
-                    e.target.value
-                  )
-                }
-                placeholder="Search for products, categories, or brands..."
-              />
+          <div className="hero-v2-art">
+            <span className="hero-art-tag">Good Things Ahead ✨</span>
+            <img
+              src={`\${import.meta.env.BASE_URL}hero-shopping.svg`}
+              alt="Picksy Store shopping finds"
+            />
+            <span className="hero-art-arrow">↗</span>
+          </div>
 
-              <button
-                type="submit"
-                aria-label="Search"
-              >
-                <Search size={19} />
-              </button>
-            </form>
+          <div className="hero-slider-dots" aria-hidden="true">
+            <span className="active" />
+            <span />
+            <span />
+          </div>
+        </section>
 
-            <div className="popular-searches">
-              <span>Popular:</span>
-
-              <button
-                onClick={() =>
-                  setQuery('earbuds')
-                }
-              >
-                Wireless Earbuds
-              </button>
-
-              <button
-                onClick={() =>
-                  setQuery('home')
-                }
-              >
-                Home Decor
-              </button>
-
-              <button
-                onClick={() =>
-                  setQuery('kitchen')
-                }
-              >
-                Kitchen
-              </button>
-
-              <button
-                onClick={showUnder299}
-              >
-                Under ₹299
-              </button>
+        <section className="hero-benefits container" aria-label="Picksy benefits">
+          <div>
+            <span><Truck size={22} /></span>
+            <div>
+              <b>Fast &amp; Reliable Delivery</b>
+              <small>Get your products on time</small>
             </div>
           </div>
 
-          {/* =========================
-              HERO ART
-          ========================= */}
-
-          <div className="hero-art">
-            <div className="float-card card-one">
-              ✨ Good Things Ahead
+          <div>
+            <span><ShieldCheck size={22} /></span>
+            <div>
+              <b>Secure Payments</b>
+              <small>100% safe &amp; protected</small>
             </div>
+          </div>
 
-            <div className="art-product art-phone">
-              Good
-              <br />
-              <b>Things</b>
-              <br />
-              Ahead 🌼
+          <div>
+            <span><BadgeCheck size={22} /></span>
+            <div>
+              <b>Top Quality Products</b>
+              <small>Handpicked with care</small>
             </div>
+          </div>
 
-            <div className="art-product art-bottle">
-              💧
-            </div>
-
-            <div className="art-product art-watch">
-              10
-              <br />
-              <b>08</b>
-            </div>
-
-            <div className="art-product art-buds">
-              🎧
-            </div>
-
-            <div className="art-product art-plant">
-              🌿
-            </div>
-
-            <div className="scribble">
-              ↗
-            </div>
-
-            <div className="hero-note">
-              Shop
-              <br />
-              <b>Smart</b>
-              <br />
-              Live Better ♥
+          <div>
+            <span><Headphones size={22} /></span>
+            <div>
+              <b>24/7 Customer Support</b>
+              <small>We're here to help</small>
             </div>
           </div>
         </section>
@@ -684,56 +630,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* =========================
-            TRUST
-        ========================= */}
 
-        <section className="trust-strip container">
-          <div>
-            <span>🔎</span>
-
-            <div>
-              <b>
-                Curated Finds
-              </b>
-
-              <small>
-                We search so you don't
-                have to.
-              </small>
-            </div>
-          </div>
-
-          <div>
-            <span>💰</span>
-
-            <div>
-              <b>
-                Value Focused
-              </b>
-
-              <small>
-                Trending picks at smart
-                prices.
-              </small>
-            </div>
-          </div>
-
-          <div>
-            <span>⚡</span>
-
-            <div>
-              <b>
-                Easy Discovery
-              </b>
-
-              <small>
-                Find your next favorite
-                quickly.
-              </small>
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* =========================
