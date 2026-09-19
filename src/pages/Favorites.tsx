@@ -33,10 +33,6 @@ export default function Favorites() {
   const [error, setError] =
     useState('')
 
-  // =========================
-  // LOAD FAVORITES
-  // =========================
-
   const loadFavorites = async () => {
     setLoading(true)
     setError('')
@@ -141,7 +137,6 @@ export default function Favorites() {
         })
       )
 
-    // Keep the same order as saved favorites
     const orderedProducts =
       favoriteIds
         .map((id) =>
@@ -164,10 +159,6 @@ export default function Favorites() {
     setLoading(false)
   }
 
-  // =========================
-  // INITIAL LOAD
-  // =========================
-
   useEffect(() => {
     loadFavorites()
 
@@ -189,10 +180,6 @@ export default function Favorites() {
     }
   }, [])
 
-  // =========================
-  // SEARCH
-  // =========================
-
   const handleSearch = (
     value: string
   ) => {
@@ -204,7 +191,7 @@ export default function Favorites() {
     }
 
     window.location.href =
-      `/?search=${encodeURIComponent(
+      `${import.meta.env.BASE_URL}?search=${encodeURIComponent(
         query
       )}`
   }
@@ -217,13 +204,7 @@ export default function Favorites() {
 
       <main className="favorites-page">
         <div className="container">
-
-          {/* =========================
-              PAGE HEADER
-          ========================= */}
-
           <div className="favorites-header">
-
             <Link
               className="back-link"
               to="/"
@@ -236,7 +217,6 @@ export default function Favorites() {
             </Link>
 
             <div className="favorites-title-row">
-
               <div>
                 <span className="section-kicker">
                   YOUR SAVED FINDS
@@ -258,13 +238,8 @@ export default function Favorites() {
                   fill="currentColor"
                 />
               </div>
-
             </div>
           </div>
-
-          {/* =========================
-              ERROR
-          ========================= */}
 
           {error && (
             <div className="favorites-message">
@@ -287,10 +262,6 @@ export default function Favorites() {
             </div>
           )}
 
-          {/* =========================
-              LOADING
-          ========================= */}
-
           {loading && !error && (
             <div className="favorites-message">
               <h2>
@@ -304,15 +275,10 @@ export default function Favorites() {
             </div>
           )}
 
-          {/* =========================
-              EMPTY STATE
-          ========================= */}
-
           {!loading &&
             !error &&
             products.length === 0 && (
               <div className="favorites-empty">
-
                 <div className="favorites-empty-icon">
                   <Heart
                     size={34}
@@ -335,13 +301,8 @@ export default function Favorites() {
                 >
                   Explore Picksy
                 </Link>
-
               </div>
             )}
-
-          {/* =========================
-              FAVORITE PRODUCTS
-          ========================= */}
 
           {!loading &&
             !error &&
@@ -370,7 +331,6 @@ export default function Favorites() {
                 </div>
               </>
             )}
-
         </div>
       </main>
     </>
