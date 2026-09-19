@@ -21,18 +21,11 @@ type Props = {
 export default function Header({
   onSearch,
 }: Props) {
-  const [open, setOpen] =
-    useState(false)
+  const [open, setOpen] = useState(false)
 
-  const [query, setQuery] =
-    useState('')
+  const [query, setQuery] = useState('')
 
-  const [favoriteCount, setFavoriteCount] =
-    useState(0)
-
-  // =========================
-  // LOAD FAVORITE COUNT
-  // =========================
+  const [favoriteCount, setFavoriteCount] = useState(0)
 
   const updateFavoriteCount = () => {
     try {
@@ -74,10 +67,6 @@ export default function Header({
     }
   }, [])
 
-  // =========================
-  // SEARCH
-  // =========================
-
   const submit = (
     e: React.FormEvent
   ) => {
@@ -95,17 +84,10 @@ export default function Header({
   return (
     <header className="site-header">
       <div className="container header-inner">
-
-        {/* =========================
-            BRAND
-        ========================= */}
-
         <Link
           to="/"
           className="brand"
-          onClick={() =>
-            setOpen(false)
-          }
+          onClick={() => setOpen(false)}
         >
           <span className="brand-mark">
             <ShoppingBag
@@ -125,81 +107,56 @@ export default function Header({
           </span>
         </Link>
 
-        {/* =========================
-            NAVIGATION
-        ========================= */}
-
         <nav
-          className={`desktop-nav ${
-            open
-              ? 'mobile-open'
-              : ''
-          }`}
+          className={
+            `desktop-nav ${open ? 'mobile-open' : ''}`
+          }
         >
           <Link
             className="active"
             to="/"
-            onClick={() =>
-              setOpen(false)
-            }
+            onClick={() => setOpen(false)}
           >
             Home
           </Link>
 
-          <a
-            href="/#trending"
-            onClick={() =>
-              setOpen(false)
-            }
+          <Link
+            to="/#trending"
+            onClick={() => setOpen(false)}
           >
             Trending
-          </a>
+          </Link>
 
-          <a
-            href="/#new"
-            onClick={() =>
-              setOpen(false)
-            }
+          <Link
+            to="/#new"
+            onClick={() => setOpen(false)}
           >
             New Finds
-          </a>
+          </Link>
 
-          <a
-            href="/#categories"
-            onClick={() =>
-              setOpen(false)
-            }
+          <Link
+            to="/#categories"
+            onClick={() => setOpen(false)}
           >
             Categories
-          </a>
+          </Link>
 
-          <a
-            href="/#under299"
-            onClick={() =>
-              setOpen(false)
-            }
+          <Link
+            to="/#under299"
+            onClick={() => setOpen(false)}
           >
             Under ₹299
-          </a>
+          </Link>
 
-          <a
-            href="/#picks"
-            onClick={() =>
-              setOpen(false)
-            }
+          <Link
+            to="/#picks"
+            onClick={() => setOpen(false)}
           >
             Best Picks
-          </a>
+          </Link>
         </nav>
 
-        {/* =========================
-            HEADER ACTIONS
-        ========================= */}
-
         <div className="header-actions">
-
-          {/* SEARCH */}
-
           <form
             className="header-search"
             onSubmit={submit}
@@ -217,21 +174,11 @@ export default function Header({
             />
           </form>
 
-          {/* =========================
-              FAVORITES
-          ========================= */}
-
           <Link
             to="/favorites"
             className="icon-button favorite-header-button"
-            aria-label={`Favorites${
-              favoriteCount
-                ? ` (${favoriteCount})`
-                : ''
-            }`}
-            onClick={() =>
-              setOpen(false)
-            }
+            aria-label={`Favorites${favoriteCount ? ` (${favoriteCount})` : ''}`}
+            onClick={() => setOpen(false)}
           >
             <Heart
               size={19}
@@ -251,8 +198,6 @@ export default function Header({
             )}
           </Link>
 
-          {/* ACCOUNT */}
-
           <button
             className="icon-button"
             aria-label="Account"
@@ -260,8 +205,6 @@ export default function Header({
           >
             <User size={19} />
           </button>
-
-          {/* MENU */}
 
           <button
             className="menu-button icon-button"
