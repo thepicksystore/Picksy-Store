@@ -94,7 +94,7 @@ export default function Header({
           >
             <img
               className="brand-logo"
-              src={\`\${import.meta.env.BASE_URL}picksy-logo.svg\`}
+              src={`${import.meta.env.BASE_URL}picksy-logo.svg`}
               alt="Picksy Store"
             />
           </Link>
@@ -112,7 +112,7 @@ export default function Header({
             <Link
               to="/favorites"
               className="header-action-link"
-              aria-label={\`Favorites\${favoriteCount ? \` (\${favoriteCount})\` : ''}\`}
+              aria-label={`Favorites${favoriteCount ? ` (${favoriteCount})` : ''}`}
               onClick={() => setOpen(false)}
             >
               <span className="header-action-icon">
@@ -165,7 +165,7 @@ export default function Header({
             <ChevronDown size={19} />
           </Link>
 
-          <nav className={\`desktop-nav \${open ? 'mobile-open' : ''}\`}>
+          <nav className={`desktop-nav ${open ? 'mobile-open' : ''}`}>
             <Link className="active" to="/" onClick={() => setOpen(false)}>
               Home
             </Link>
