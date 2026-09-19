@@ -309,7 +309,7 @@ export default function Home() {
         onSearch={setQuery}
       />
 
-      <main>
+      <main id="top">
         {/* =========================
             HERO
         ========================= */}
@@ -740,7 +740,7 @@ export default function Home() {
           FOOTER
       ========================= */}
 
-      <footer className="footer">
+      <footer id="footer" className="footer">
         <div className="container footer-grid">
           <div>
             <div className="brand footer-brand">
