@@ -122,9 +122,11 @@ export default function AdminLogin({
   return (
     <div className="admin-login-page">
       <div className="admin-login-card">
-        <div className="admin-login-icon">
-          <LayoutDashboard size={27} />
-        </div>
+        <img
+          className="admin-login-logo"
+          src={import.meta.env.BASE_URL + 'picksy-logo.svg'}
+          alt="Picksy Store"
+        />
 
         <div className="admin-login-heading">
           <h1>Picksy Admin</h1>
