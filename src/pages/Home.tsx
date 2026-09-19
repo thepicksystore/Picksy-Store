@@ -214,6 +214,11 @@ export default function Home() {
       (p) => p.price <= 299
     )
 
+  const budgetProducts = [...products]
+    .filter((p) => p.price <= 299)
+    .sort((a, b) => a.price - b.price)
+    .slice(0, 4)
+
   // =========================
   // UNDER ₹299 FILTER
   // =========================
@@ -491,38 +496,71 @@ export default function Home() {
           id="under299"
           className="budget-banner container"
         >
-          <div>
+          <div className="budget-copy">
             <span className="budget-pill">
               👑 Budget Friendly
             </span>
 
             <h2>
-              Under ₹299
+              Best Deals Under ₹299
             </h2>
 
             <p>
-              Great quality. Amazing
-              prices.
+              Smart finds, low prices and everyday value.
             </p>
           </div>
 
           <button
-            onClick={showUnder299}
+            className="budget-cta"
+            onClick={() => {
+              showUnder299()
+              window.requestAnimationFrame(() => {
+                document.getElementById('discover')?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                })
+              })
+            }}
           >
-            Explore Now{' '}
+            Explore Deals{' '}
             <ArrowRight size={16} />
           </button>
 
           <div className="budget-items">
-            {under299
-              .slice(0, 4)
-              .map((p) => (
-                <img
+            {budgetProducts.length ? (
+              budgetProducts.map((p) => (
+                <div
                   key={p.id}
-                  src={p.image}
-                  alt={p.name}
-                />
-              ))}
+                  className="budget-item"
+                  title={p.name}
+                >
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none'
+                        event.currentTarget.nextElementSibling?.classList.add('visible')
+                      }}
+                    />
+                  ) : null}
+
+                  <span className="budget-item-fallback">
+                    {categoryIcons[
+                      String(p.category ?? '').toLowerCase()
+                    ] || '✨'}
+                  </span>
+
+                  <span className="budget-item-price">
+                    ₹{Math.round(p.price)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="budget-empty">
+                New deals coming soon
+              </div>
+            )}
           </div>
         </section>
 
