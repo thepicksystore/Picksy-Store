@@ -59,12 +59,12 @@ export default function Favorites() {
 
     if (supabaseError) {
       console.error(
-        'Failed to load favorites:',
+        'Failed to load wishlist:',
         supabaseError
       )
 
       setError(
-        'Unable to load your favorites. Please try again.'
+        'Unable to load your wishlist. Please try again.'
       )
 
       setProducts([])
@@ -223,12 +223,11 @@ export default function Favorites() {
                 </span>
 
                 <h1>
-                  Favorites
+                  Wishlist
                 </h1>
 
                 <p>
-                  Products you saved
-                  to check later.
+                  Products you added to your wishlist.
                 </p>
               </div>
 
@@ -265,12 +264,12 @@ export default function Favorites() {
           {loading && !error && (
             <div className="favorites-message">
               <h2>
-                Loading favorites...
+                Loading wishlist...
               </h2>
 
               <p>
                 Please wait while we
-                fetch your saved finds.
+                fetch your wishlist finds.
               </p>
             </div>
           )}
@@ -286,13 +285,11 @@ export default function Favorites() {
                 </div>
 
                 <h2>
-                  No favorites yet
+                  Your wishlist is empty
                 </h2>
 
                 <p>
-                  Found something you
-                  love? Tap the heart
-                  icon and save it here.
+                  Found something you love? Tap the heart icon to add it to your wishlist.
                 </p>
 
                 <Link
@@ -311,8 +308,8 @@ export default function Favorites() {
                 <div className="favorites-count">
                   {products.length}{' '}
                   {products.length === 1
-                    ? 'saved find'
-                    : 'saved finds'}
+                    ? 'wishlist item'
+                    : 'wishlist items'}
                 </div>
 
                 <div className="favorites-grid">
