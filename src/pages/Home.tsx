@@ -166,10 +166,28 @@ export default function Home() {
       return products
     }
 
-    // Special Under ₹299 filter
+    // Special budget filters
     if (q === 'under299') {
       return products.filter(
         (p) => p.price <= 299
+      )
+    }
+
+    if (q === 'under499') {
+      return products.filter(
+        (p) => p.price > 299 && p.price <= 499
+      )
+    }
+
+    if (q === 'under799') {
+      return products.filter(
+        (p) => p.price > 499 && p.price <= 799
+      )
+    }
+
+    if (q === 'under999') {
+      return products.filter(
+        (p) => p.price > 799 && p.price <= 999
       )
     }
 
@@ -209,22 +227,51 @@ export default function Home() {
       (p) => p.picksyPick
     )
 
-  const under299 =
-    filtered.filter(
-      (p) => p.price <= 299
-    )
+  const dealSections = [
+    {
+      id: 'under299',
+      label: '₹299',
+      min: 0,
+      max: 299,
+      query: 'under299',
+      description: 'Smart finds, low prices and everyday value.',
+    },
+    {
+      id: 'under499',
+      label: '₹499',
+      min: 300,
+      max: 499,
+      query: 'under499',
+      description: 'More choices, still easy on your pocket.',
+    },
+    {
+      id: 'under799',
+      label: '₹799',
+      min: 500,
+      max: 799,
+      query: 'under799',
+      description: 'Trending picks with even more variety.',
+    },
+    {
+      id: 'under999',
+      label: '₹999',
+      min: 800,
+      max: 999,
+      query: 'under999',
+      description: 'Premium-looking finds without going over budget.',
+    },
+  ].map((section) => ({
+    ...section,
+    products: [...products]
+      .filter(
+        (p) => p.price >= section.min && p.price <= section.max
+      )
+      .sort((a, b) => a.price - b.price)
+      .slice(0, 4),
+  }))
 
-  const budgetProducts = [...products]
-    .filter((p) => p.price <= 299)
-    .sort((a, b) => a.price - b.price)
-    .slice(0, 4)
-
-  // =========================
-  // UNDER ₹299 FILTER
-  // =========================
-
-  const showUnder299 = () => {
-    setQuery('under299')
+  const showBudget = (queryValue: string) => {
+    setQuery(queryValue)
   }
 
   // =========================
@@ -402,13 +449,19 @@ export default function Home() {
           {query && (
             <div className="search-result container">
               <span>
-                {query ===
-                'under299' ? (
+                {query.startsWith('under') ? (
                   <>
-                    Showing products{' '}
+                    Showing products in the{' '}
                     <b>
-                      under ₹299
-                    </b>
+                      {query === 'under299'
+                        ? '₹0–₹299'
+                        : query === 'under499'
+                          ? '₹300–₹499'
+                          : query === 'under799'
+                            ? '₹500–₹799'
+                            : '₹800–₹999'}
+                    </b>{' '}
+                    range
                   </>
                 ) : (
                   <>
@@ -489,107 +542,89 @@ export default function Home() {
         </div>
 
         {/* =========================
-            UNDER ₹299
+            BUDGET DEALS
         ========================= */}
 
         <section
           id="under299"
-          className="budget-banner container"
+          className="budget-deals container"
         >
-          <div className="budget-copy">
-            <span className="budget-pill">
-              👑 Budget Friendly
-            </span>
+          {dealSections.map((deal) => (
+            <article
+              key={deal.id}
+              id={deal.id}
+              className="budget-card"
+            >
+              <div className="budget-card-copy">
+                <span className="budget-pill">
+                  👑 Budget Friendly
+                </span>
 
-            <h2>
-              Best Deals Under ₹299
-            </h2>
+                <h2>
+                  Best Deals Under {deal.label}
+                </h2>
 
-            <p>
-              Smart finds, low prices and everyday value.
-            </p>
-          </div>
+                <p>
+                  {deal.description}
+                </p>
 
-          <button
-            className="budget-cta"
-            onClick={() => {
-              showUnder299()
-              window.requestAnimationFrame(() => {
-                document.getElementById('discover')?.scrollIntoView({
-                  behavior: 'smooth',
-                  block: 'start',
-                })
-              })
-            }}
-          >
-            Explore Deals{' '}
-            <ArrowRight size={16} />
-          </button>
-
-          <div className="budget-items">
-            {budgetProducts.length ? (
-              budgetProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="budget-item"
-                  title={p.name}
+                <button
+                  type="button"
+                  className="budget-cta"
+                  onClick={() => {
+                    showBudget(deal.query)
+                    window.requestAnimationFrame(() => {
+                      document.getElementById('discover')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      })
+                    })
+                  }}
                 >
-                  {p.image ? (
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                        event.currentTarget.nextElementSibling?.classList.add('visible')
-                      }}
-                    />
-                  ) : null}
-
-                  <span className="budget-item-fallback">
-                    {categoryIcons[
-                      String(p.category ?? '').toLowerCase()
-                    ] || '✨'}
-                  </span>
-
-                  <span className="budget-item-price">
-                    ₹{Math.round(p.price)}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="budget-empty">
-                New deals coming soon
+                  Explore Deals
+                  <ArrowRight size={16} />
+                </button>
               </div>
-            )}
-          </div>
+
+              <div className="budget-items">
+                {deal.products.length ? (
+                  deal.products.map((p) => (
+                    <div
+                      key={p.id}
+                      className="budget-item"
+                      title={p.name}
+                    >
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none'
+                            event.currentTarget.nextElementSibling?.classList.add('visible')
+                          }}
+                        />
+                      ) : null}
+
+                      <span className="budget-item-fallback">
+                        {categoryIcons[
+                          String(p.category ?? '').toLowerCase()
+                        ] || '✨'}
+                      </span>
+
+                      <span className="budget-item-price">
+                        ₹{Math.round(p.price)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="budget-empty">
+                    New deals coming soon
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
         </section>
-
-        {/* =========================
-            FESTIVAL
-        ========================= */}
-
-        <section className="festival-banner container">
-          <div>
-            <span>
-              FESTIVAL SPECIAL FINDS
-            </span>
-
-            <h2>
-              Make your celebrations
-              more special ✨
-            </h2>
-          </div>
-
-          <button>
-            Explore Collection{' '}
-            <ArrowRight size={16} />
-          </button>
-
-          <div className="festival-diyas">
-            🪔 🪔 🪔
-          </div>
-        </section>
-
 
       </main>
 
@@ -624,7 +659,7 @@ export default function Home() {
             <h4>Quick Links</h4>
 
             <a href="#top">Home</a>
-            <a href="#under299">Best Deals</a>
+            <a href="#under299">Best Deals Under ₹299</a>
             <a href="#new">New Arrivals</a>
             <a href="#trending">Trending</a>
             <a href="#picks">Picksy Picks</a>
