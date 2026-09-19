@@ -1268,14 +1268,13 @@ export default function Admin() {
 
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <div className="admin-brand-icon">
-            <Package size={22} />
-          </div>
+          <img
+            className="admin-brand-logo"
+            src={import.meta.env.BASE_URL + 'picksy-logo.svg'}
+            alt="Picksy Store"
+          />
 
-          <div>
-            <strong>Picksy</strong>
-            <span>Admin</span>
-          </div>
+          <span>Admin</span>
         </div>
 
         <nav className="admin-nav">
