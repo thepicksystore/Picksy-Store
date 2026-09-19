@@ -237,20 +237,7 @@ a{
   display:none;
 }
 
-.desktop-nav button.active{
-  color:#a61954;
-  background:#fff4f8;
-  box-shadow:inset 0 -3px 0 #a61954;
-}
 
-.desktop-nav button:hover{
-  color:#a61954;
-  background:#fff4f8;
-}
-
-.desktop-nav button.active:after{
-  display:none;
-}
 
 .header-nav-inner .menu-button{
   display:none;
