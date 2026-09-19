@@ -88,23 +88,13 @@ export default function Header({
           to="/"
           className="brand"
           onClick={() => setOpen(false)}
+          aria-label="Picksy Store"
         >
-          <span className="brand-mark">
-            <ShoppingBag
-              size={18}
-              strokeWidth={2.5}
-            />
-          </span>
-
-          <span>
-            <strong>
-              Picksy
-            </strong>
-
-            <small>
-              Curated for You
-            </small>
-          </span>
+          <img
+            className="brand-logo"
+            src={`${import.meta.env.BASE_URL}picksy-logo.svg`}
+            alt="Picksy Store"
+          />
         </Link>
 
         <nav
