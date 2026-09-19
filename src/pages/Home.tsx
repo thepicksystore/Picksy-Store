@@ -385,69 +385,6 @@ export default function Home() {
 
 
         {/* =========================
-            CATEGORIES
-        ========================= */}
-
-        <section
-          id="categories"
-          className="category-strip container"
-        >
-          <div className="section-heading compact">
-            <h2>
-              Shop by Category
-            </h2>
-
-            <Link to="/category/more">
-              Explore all{' '}
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-
-          <div className="category-row">
-            {categories.map(
-              (category) => (
-                <Link
-                  key={category.id}
-                  to={`/category/${category.slug}`}
-                  className="category-link"
-                  style={{
-                    textDecoration:
-                      'none',
-                    color: 'inherit',
-                  }}
-                >
-                  <span>
-                    {categoryIcons[
-                      category.slug
-                    ] ?? '▦'}
-                  </span>
-
-                  <b>
-                    {category.name}
-                  </b>
-                </Link>
-              )
-            )}
-
-            <Link
-              to="/category/more"
-              className="category-link"
-              style={{
-                textDecoration:
-                  'none',
-                color: 'inherit',
-              }}
-            >
-              <span>▦</span>
-
-              <b>
-                More
-              </b>
-            </Link>
-          </div>
-        </section>
-
-        {/* =========================
             PRODUCTS
         ========================= */}
 
