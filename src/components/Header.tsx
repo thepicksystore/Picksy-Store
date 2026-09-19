@@ -4,13 +4,13 @@ import {
 } from 'react'
 
 import {
-  ChevronDown,
   Heart,
-  Menu,
   Search,
   ShoppingCart,
   User,
+  Menu,
   X,
+  ChevronDown,
 } from 'lucide-react'
 
 import { Link } from 'react-router-dom'
@@ -19,21 +19,25 @@ type Props = {
   onSearch: (value: string) => void
 }
 
+type NavKey =
+  | 'best'
+  | 'new'
+  | 'trending'
+  | 'picks'
+  | 'categories'
+  | 'contact'
+
 export default function Header({
   onSearch,
 }: Props) {
   const [open, setOpen] = useState(false)
-
   const [query, setQuery] = useState('')
-
   const [favoriteCount, setFavoriteCount] = useState(0)
+  const [activeNav, setActiveNav] = useState<NavKey | null>(null)
 
   const updateFavoriteCount = () => {
     try {
-      const stored =
-        localStorage.getItem(
-          'picksy_favorites'
-        )
+      const stored = localStorage.getItem('picksy_favorites')
 
       if (!stored) {
         setFavoriteCount(0)
@@ -41,12 +45,7 @@ export default function Header({
       }
 
       const parsed = JSON.parse(stored)
-
-      setFavoriteCount(
-        Array.isArray(parsed)
-          ? parsed.length
-          : 0
-      )
+      setFavoriteCount(Array.isArray(parsed) ? parsed.length : 0)
     } catch {
       setFavoriteCount(0)
     }
@@ -68,35 +67,30 @@ export default function Header({
     }
   }, [])
 
-
-  const scrollToId = (
-    id: string
-  ) => {
+  const scrollToId = (id: string, navKey: NavKey) => {
     setOpen(false)
+    setActiveNav(navKey)
 
-    const element =
-      document.getElementById(id)
-
-    if (element) {
-      element.scrollIntoView({
+    window.requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       })
-    }
+    })
   }
 
-  const submit = (
-    e: React.FormEvent
-  ) => {
+  const goHome = () => {
+    setOpen(false)
+    setActiveNav(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
-
     onSearch(query)
-
-    document
-      .getElementById('discover')
-      ?.scrollIntoView({
-        behavior: 'smooth',
-      })
+    document.getElementById('discover')?.scrollIntoView({
+      behavior: 'smooth',
+    })
   }
 
   return (
@@ -106,7 +100,7 @@ export default function Header({
           <Link
             to="/"
             className="brand"
-            onClick={() => setOpen(false)}
+            onClick={goHome}
             aria-label="Picksy Store"
           >
             <img
@@ -129,7 +123,9 @@ export default function Header({
             <Link
               to="/favorites"
               className="header-action-link"
-              aria-label={`Favorites${favoriteCount ? ` (${favoriteCount})` : ''}`}
+              aria-label={
+                `Favorites${favoriteCount ? ` (${favoriteCount})` : ''}`
+              }
               onClick={() => setOpen(false)}
             >
               <span className="header-action-icon">
@@ -172,33 +168,58 @@ export default function Header({
 
       <div className="header-nav-row">
         <div className="container header-nav-inner">
-          <button
-            type="button"
-            className="all-categories-button"
-            onClick={() => scrollToId('categories')}
-          >
-            <Menu size={23} />
-            <span>All Categories</span>
-            <ChevronDown size={19} />
-          </button>
-
           <nav className={`desktop-nav ${open ? 'mobile-open' : ''}`}>
-            <button type="button" className="active" onClick={() => scrollToId('top')}>
-              Home
-            </button>
-            <button type="button" onClick={() => scrollToId('categories')}>
-              Categories
-            </button>
-            <button type="button" onClick={() => scrollToId('under299')}>
+            <button
+              type="button"
+              className={activeNav === 'best' ? 'active' : ''}
+              onClick={() => scrollToId('under299', 'best')}
+            >
               Best Deals
             </button>
-            <button type="button" onClick={() => scrollToId('new')}>
+
+            <button
+              type="button"
+              className={activeNav === 'new' ? 'active' : ''}
+              onClick={() => scrollToId('new', 'new')}
+            >
               New Arrivals
             </button>
-            <button type="button" onClick={() => scrollToId('trending')}>
+
+            <button
+              type="button"
+              className={activeNav === 'trending' ? 'active' : ''}
+              onClick={() => scrollToId('trending', 'trending')}
+            >
               Trending
             </button>
-            <button type="button" onClick={() => scrollToId('footer')}>
+
+            <button
+              type="button"
+              className={activeNav === 'picks' ? 'active' : ''}
+              onClick={() => scrollToId('picks', 'picks')}
+            >
+              Picksy Pick
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeNav === 'categories'
+                  ? 'all-categories-button active'
+                  : 'all-categories-button'
+              }
+              onClick={() => scrollToId('categories', 'categories')}
+            >
+              <Menu size={21} />
+              <span>All Categories</span>
+              <ChevronDown size={18} />
+            </button>
+
+            <button
+              type="button"
+              className={activeNav === 'contact' ? 'active' : ''}
+              onClick={() => scrollToId('footer', 'contact')}
+            >
               Contact
             </button>
           </nav>
@@ -214,4 +235,5 @@ export default function Header({
         </div>
       </div>
     </header>
-  )}
+  )
+}
