@@ -1227,7 +1227,7 @@ export default function Admin() {
   if (loading) {
     return (
       <div className="admin-loading">
-        <Package size={28} />
+        <Loader2 size={28} className="admin-spin" />
         <p>Loading admin dashboard...</p>
       </div>
     )
