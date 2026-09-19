@@ -4,6 +4,11 @@ import {
   Search,
   ShoppingBag,
   Zap,
+  Mail,
+  Instagram,
+  Youtube,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -556,106 +561,95 @@ export default function Home() {
 
       <footer id="footer" className="footer">
         <div className="container footer-grid">
-          <div>
+          <div className="footer-brand-column">
             <div className="brand footer-brand">
               <span className="brand-mark">
                 <ShoppingBagIcon />
               </span>
 
               <span>
-                <strong>
-                  Picksy
-                </strong>
-
-                <small>
-                  Curated for You
-                </small>
+                <strong>Picksy</strong>
+                <small>Curated for You</small>
               </span>
             </div>
 
             <p>
-              Trending, affordable &
-              useful finds — curated for
-              you.
-            </p>
-          </div>
-
-          <div>
-            <h4>
-              Explore
-            </h4>
-
-            <Link to="/category/more">
-              All Finds
-            </Link>
-
-            <Link to="/category/fashion">
-              Fashion
-            </Link>
-
-            <Link to="/category/home">
-              Home
-            </Link>
-
-            <Link to="/category/kitchen">
-              Kitchen
-            </Link>
-          </div>
-
-          <div>
-            <h4>
-              Categories
-            </h4>
-
-            <Link to="/category/women">
-              Women
-            </Link>
-
-            <Link to="/category/men">
-              Men
-            </Link>
-
-            <Link to="/category/kids">
-              Kids
-            </Link>
-
-            <Link to="/category/beauty">
-              Beauty
-            </Link>
-          </div>
-
-          <div>
-            <h4>
-              Stay Updated
-            </h4>
-
-            <p>
-              More trending finds. Less
-              scrolling.
+              Trending, affordable & useful finds — curated for you.
             </p>
 
-            <div className="email-box">
-              <input
-                placeholder="Enter your email"
-              />
+            <div className="footer-brand-line">
+              <span>Picksy = curated for you</span>
+            </div>
+          </div>
 
-              <button>
-                →
-              </button>
+          <div>
+            <h4>Quick Links</h4>
+
+            <a href="#top">Home</a>
+            <a href="#under299">Best Deals</a>
+            <a href="#new">New Arrivals</a>
+            <a href="#trending">Trending</a>
+            <a href="#picks">Picksy Picks</a>
+          </div>
+
+          <div>
+            <h4>Shop by Category</h4>
+
+            <Link to="/category/women">Women</Link>
+            <Link to="/category/men">Men</Link>
+            <Link to="/category/kids">Kids</Link>
+            <Link to="/category/home">Home</Link>
+            <Link to="/category/kitchen">Kitchen</Link>
+          </div>
+
+          <div>
+            <h4>Why Picksy?</h4>
+
+            <div className="footer-feature">
+              <span><Sparkles size={15} /></span>
+              <p>Trending finds</p>
+            </div>
+
+            <div className="footer-feature">
+              <span>₹</span>
+              <p>Affordable picks</p>
+            </div>
+
+            <div className="footer-feature">
+              <span><ShieldCheck size={15} /></span>
+              <p>Curated for you</p>
+            </div>
+
+            <div className="footer-feature">
+              <span><Mail size={15} /></span>
+              <p>Easy product discovery</p>
             </div>
           </div>
         </div>
 
-        <div className="container footer-bottom">
-          <span>
-            © 2026 Picksy. All rights
-            reserved.
-          </span>
+        <div className="container footer-update-row">
+          <div>
+            <h4>Stay Updated</h4>
+            <p>More trending finds. Less scrolling.</p>
+          </div>
 
-          <span>
-            Picksy may earn a commission
-            from qualifying purchases.
-          </span>
+          <div className="footer-socials" aria-label="Picksy Store social links">
+            <span className="footer-social-label">Follow Picksy</span>
+            <span className="footer-social-pill">
+              <Instagram size={16} />
+              Instagram
+            </span>
+            <span className="footer-social-pill">
+              <Youtube size={16} />
+              YouTube
+            </span>
+            <span className="footer-social-pill">Pinterest</span>
+          </div>
+        </div>
+
+        <div className="container footer-bottom">
+          <span>© 2026 Picksy. All rights reserved.</span>
+          <span>Picksy may earn a commission from qualifying purchases.</span>
         </div>
       </footer>
     </>
