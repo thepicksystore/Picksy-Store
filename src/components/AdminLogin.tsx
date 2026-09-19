@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Eye,
   EyeOff,
-  LayoutDashboard,
   Loader2,
   LockKeyhole,
   Mail,
