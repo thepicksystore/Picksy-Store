@@ -157,8 +157,8 @@ export default function ProductCard({
           type="button"
           aria-label={
             favorite
-              ? `Remove ${product.name} from favorites`
-              : `Save ${product.name}`
+              ? `Remove ${product.name} from wishlist`
+              : `Add ${product.name} to wishlist`
           }
           aria-pressed={favorite}
           onClick={handleFavorite}
