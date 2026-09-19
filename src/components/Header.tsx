@@ -68,6 +68,23 @@ export default function Header({
     }
   }, [])
 
+
+  const scrollToId = (
+    id: string
+  ) => {
+    setOpen(false)
+
+    const element =
+      document.getElementById(id)
+
+    if (element) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }
+  }
+
   const submit = (
     e: React.FormEvent
   ) => {
@@ -155,35 +172,35 @@ export default function Header({
 
       <div className="header-nav-row">
         <div className="container header-nav-inner">
-          <Link
-            to="/#categories"
+          <button
+            type="button"
             className="all-categories-button"
-            onClick={() => setOpen(false)}
+            onClick={() => scrollToId('categories')}
           >
             <Menu size={23} />
             <span>All Categories</span>
             <ChevronDown size={19} />
-          </Link>
+          </button>
 
           <nav className={`desktop-nav ${open ? 'mobile-open' : ''}`}>
-            <Link className="active" to="/" onClick={() => setOpen(false)}>
+            <button type="button" className="active" onClick={() => scrollToId('top')}>
               Home
-            </Link>
-            <Link to="/#categories" onClick={() => setOpen(false)}>
+            </button>
+            <button type="button" onClick={() => scrollToId('categories')}>
               Categories
-            </Link>
-            <Link to="/#under299" onClick={() => setOpen(false)}>
+            </button>
+            <button type="button" onClick={() => scrollToId('under299')}>
               Best Deals
-            </Link>
-            <Link to="/#new" onClick={() => setOpen(false)}>
+            </button>
+            <button type="button" onClick={() => scrollToId('new')}>
               New Arrivals
-            </Link>
-            <Link to="/#trending" onClick={() => setOpen(false)}>
+            </button>
+            <button type="button" onClick={() => scrollToId('trending')}>
               Trending
-            </Link>
-            <Link to="/#picks" onClick={() => setOpen(false)}>
+            </button>
+            <button type="button" onClick={() => scrollToId('footer')}>
               Contact
-            </Link>
+            </button>
           </nav>
 
           <button
