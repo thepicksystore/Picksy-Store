@@ -636,14 +636,11 @@ export default function Home() {
         <div className="container footer-grid">
           <div className="footer-brand-column">
             <div className="brand footer-brand">
-              <span className="brand-mark">
-                <ShoppingBagIcon />
-              </span>
-
-              <span>
-                <strong>Picksy</strong>
-                <small>Curated for You</small>
-              </span>
+              <img
+                className="footer-brand-logo"
+                src={`${import.meta.env.BASE_URL}picksy-logo.svg`}
+                alt="Picksy Store"
+              />
             </div>
 
             <p>
