@@ -26,6 +26,12 @@ export default function App() {
       />
 
       <Route
+        path="/wishlist"
+        element={<Favorites />}
+      />
+
+      {/* Keep the old route working for existing links/bookmarks. */}
+      <Route
         path="/favorites"
         element={<Favorites />}
       />
