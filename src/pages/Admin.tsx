@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ImagePlus,
   LayoutDashboard,
+  Loader2,
   LogOut,
   MousePointerClick,
   RefreshCw,
