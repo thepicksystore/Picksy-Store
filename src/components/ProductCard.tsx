@@ -94,16 +94,7 @@ export default function ProductCard({
     const referrer =
       document.referrer || ''
 
-    // Open marketplace affiliate URL FIRST.
-    // This keeps the action directly connected
-    // to the user's click and avoids popup blockers.
-    window.open(
-      affiliateUrl,
-      '_blank',
-      'noopener,noreferrer'
-    )
-
-    // Record affiliate click in Supabase
+    // Record affiliate click in Supabase.
     // in the background without delaying navigation.
     void supabase
       .from('affiliate_clicks')
@@ -280,16 +271,17 @@ export default function ProductCard({
         ========================= */}
 
         {product.affiliateUrl ? (
-          <button
+          <a
             className="shop-button"
-            type="button"
-            onClick={
-              handleAffiliateClick
-            }
+            href={product.affiliateUrl.trim()}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            onClick={handleAffiliateClick}
+            aria-label={'Shop ' + product.name + ' on ' + product.marketplace}
           >
             Shop Now
             <ExternalLink size={14} />
-          </button>
+          </a>
         ) : (
           <button
             className="shop-button"
