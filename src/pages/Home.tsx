@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
-  BadgeCheck,
-  Headphones,
   Search,
-  ShieldCheck,
   ShoppingBag,
-  Truck,
   Zap,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -43,6 +39,15 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [heroSlide, setHeroSlide] = useState(0)
+
+  const heroSlides = [
+    { kicker: 'Trending Finds', title: 'Big Savings', accent: 'Better Choices', line: ['Quality products', 'Affordable prices', 'All in one place'], tag: 'Good Things Ahead ✨' },
+    { kicker: 'Picksy Picks', title: 'Smart Finds', accent: 'Happy Shopping', line: ['Handpicked finds', 'Great value', 'Made for you'], tag: 'Curated for You ✨' },
+    { kicker: 'New Arrivals', title: 'Fresh Finds', accent: 'Worth Discovering', line: ['New products', 'Trending styles', 'Easy to explore'], tag: 'Something New ✨' },
+  ]
+
+  const currentHero = heroSlides[heroSlide]
 
   // =========================
   // LOAD PRODUCTS FROM SUPABASE
@@ -322,21 +327,21 @@ export default function Home() {
           <div className="hero-v2-copy">
             <span className="hero-kicker">
               <Zap size={15} fill="currentColor" />
-              Trending Finds
+              {currentHero.kicker}
             </span>
 
             <h1>
-              Big Savings
+              {currentHero.title}
               <br />
-              <span>Better Choices</span>
+              <span>{currentHero.accent}</span>
             </h1>
 
             <div className="hero-subline">
-              <span>Quality products</span>
+              <span>{currentHero.line[0]}</span>
               <i />
-              <span>Affordable prices</span>
+              <span>{currentHero.line[1]}</span>
               <i />
-              <span>All in one place</span>
+              <span>{currentHero.line[2]}</span>
             </div>
 
             <button
@@ -355,18 +360,25 @@ export default function Home() {
           </div>
 
           <div className="hero-v2-art">
-            <span className="hero-art-tag">Good Things Ahead ✨</span>
+            <span className="hero-art-tag">{currentHero.tag}</span>
             <img
-              src={`\${import.meta.env.BASE_URL}hero-shopping.svg`}
+              src={`${import.meta.env.BASE_URL}hero-shopping.svg`}
               alt="Picksy Store shopping finds"
             />
             <span className="hero-art-arrow">↗</span>
           </div>
 
-          <div className="hero-slider-dots" aria-hidden="true">
-            <span className="active" />
-            <span />
-            <span />
+          <div className="hero-slider-dots">
+            {heroSlides.map((slide, index) => (
+              <button
+                key={slide.kicker}
+                type="button"
+                className={index === heroSlide ? 'active' : ''}
+                aria-label={`Show slide ${index + 1}`}
+                aria-pressed={index === heroSlide}
+                onClick={() => setHeroSlide(index)}
+              />
+            ))}
           </div>
         </section>
 
