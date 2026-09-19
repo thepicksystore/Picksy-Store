@@ -15,6 +15,8 @@ import {
   useParams,
 } from 'react-router-dom'
 
+import Header from '../components/Header'
+import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
 import type { Product } from '../types/product'
 
@@ -253,7 +255,9 @@ export default function ProductDetail() {
 
   if (loading) {
     return (
-      <main className="not-found">
+      <>
+        <Header onSearch={() => {}} />
+        <main className="not-found">
         <h1>
           Loading product...
         </h1>
@@ -262,7 +266,9 @@ export default function ProductDetail() {
           Please wait while we fetch
           the details.
         </p>
-      </main>
+        </main>
+        <Footer />
+      </>
     )
   }
 
@@ -272,7 +278,9 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <main className="not-found">
+      <>
+        <Header onSearch={() => {}} />
+        <main className="not-found">
         <h1>
           Product not found
         </h1>
@@ -286,7 +294,9 @@ export default function ProductDetail() {
         <Link to="/">
           Back to Picksy
         </Link>
-      </main>
+        </main>
+        <Footer />
+      </>
     )
   }
 
@@ -346,7 +356,9 @@ export default function ProductDetail() {
   }
 
   return (
-    <main className="detail-page">
+    <>
+      <Header onSearch={() => {}} />
+      <main className="detail-page">
       <div className="container">
 
         {/* =========================
@@ -594,5 +606,7 @@ export default function ProductDetail() {
         </div>
       </div>
     </main>
+    <Footer />
+    </>
   )
 }
