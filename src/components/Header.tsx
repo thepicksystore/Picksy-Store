@@ -4,7 +4,7 @@ import {
 } from 'react'
 
 import {
-  Heart,
+  BookmarkHeart,
   Search,
   ShoppingCart,
   User,
@@ -108,6 +108,15 @@ export default function Header({
     setOpen(false)
     setActiveNav(navKey)
 
+    const homePath =
+      import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
+    if (window.location.pathname !== homePath) {
+      window.location.href =
+        import.meta.env.BASE_URL + '#' + id
+      return
+    }
+
     window.requestAnimationFrame(() => {
       document.getElementById(id)?.scrollIntoView({
         behavior: 'smooth',
@@ -119,6 +128,15 @@ export default function Header({
   const goHome = () => {
     setOpen(false)
     setActiveNav('home')
+
+    const homePath =
+      import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
+    if (window.location.pathname !== homePath) {
+      window.location.href = import.meta.env.BASE_URL
+      return
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -166,7 +184,7 @@ export default function Header({
               onClick={() => setOpen(false)}
             >
               <span className="header-action-icon">
-                <Heart
+                <BookmarkHeart
                   size={30}
                   strokeWidth={1.7}
                   fill={favoriteCount > 0 ? 'currentColor' : 'none'}
