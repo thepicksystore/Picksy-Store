@@ -228,9 +228,9 @@ a{
 }
 
 .desktop-nav button.active{
-  color:#a61954;
-  background:#fff4f8;
-  box-shadow:inset 0 -3px 0 #a61954;
+  color:#171a2b;
+  background:transparent;
+  box-shadow:none;
 }
 
 .desktop-nav button.active:after{
