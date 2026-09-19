@@ -161,6 +161,7 @@ export default function ProductCard({
               : `Add ${product.name} to wishlist`
           }
           aria-pressed={favorite}
+          title={favorite ? 'Remove from Wishlist' : 'Add to Wishlist'}
           onClick={handleFavorite}
         >
           <Heart
