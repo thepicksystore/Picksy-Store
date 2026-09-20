@@ -334,11 +334,7 @@ export default function Admin() {
       return
     }
 
-    if ((data ?? []).length > 0) {
-      setMarketplaces(data as MarketplaceOption[])
-      return
-    }
-
+    const sharedMarketplaces = (data ?? []) as MarketplaceOption[]
     let localMarketplaces: MarketplaceOption[] = []
 
     try {
@@ -350,17 +346,78 @@ export default function Admin() {
         }
       }
     } catch {
-      // Use defaults.
+      // Ignore invalid local data.
     }
 
-    const seed = localMarketplaces.length > 0
-      ? localMarketplaces
-      : DEFAULT_MARKETPLACES
+    // One-time migration from the older browser-local marketplace list.
+    // This lets the browser that still has the 8 marketplaces merge them
+    // into the new shared Supabase table.
+    if (localMarketplaces.length > 0) {
+      const migrationKey = 'picksy-marketplaces-migrated-v1'
+      const alreadyMigrated =
+        window.localStorage.getItem(migrationKey) === 'true'
+
+      if (!alreadyMigrated) {
+        const existingNames = new Set(
+          sharedMarketplaces.map((item) =>
+            item.name.trim().toLowerCase(),
+          ),
+        )
+
+        const missing = localMarketplaces
+          .filter((item) => item?.name && item?.slug)
+          .filter(
+            (item) =>
+              !existingNames.has(
+                item.name.trim().toLowerCase(),
+              ),
+          )
+          .map(({ name, slug }) => ({
+            name: name.trim(),
+            slug: slug.trim(),
+          }))
+
+        if (missing.length > 0) {
+          const { error: migrationError } = await supabase
+            .from('marketplaces')
+            .upsert(missing, { onConflict: 'name' })
+
+          if (migrationError) {
+            console.error(migrationError)
+            return
+          }
+        }
+
+        window.localStorage.setItem(migrationKey, 'true')
+
+        const { data: mergedData, error: mergedError } =
+          await supabase
+            .from('marketplaces')
+            .select('id, name, slug')
+            .order('created_at', { ascending: true })
+
+        if (mergedError) {
+          console.error(mergedError)
+          return
+        }
+
+        setMarketplaces((mergedData ?? []) as MarketplaceOption[])
+        return
+      }
+    }
+
+    if (sharedMarketplaces.length > 0) {
+      setMarketplaces(sharedMarketplaces)
+      return
+    }
 
     const { error: seedError } = await supabase
       .from('marketplaces')
       .upsert(
-        seed.map(({ name, slug }) => ({ name, slug })),
+        DEFAULT_MARKETPLACES.map(({ name, slug }) => ({
+          name,
+          slug,
+        })),
         { onConflict: 'name' },
       )
 
@@ -369,10 +426,11 @@ export default function Admin() {
       return
     }
 
-    const { data: seededData, error: reloadError } = await supabase
-      .from('marketplaces')
-      .select('id, name, slug')
-      .order('created_at', { ascending: true })
+    const { data: seededData, error: reloadError } =
+      await supabase
+        .from('marketplaces')
+        .select('id, name, slug')
+        .order('created_at', { ascending: true })
 
     if (!reloadError && seededData) {
       setMarketplaces(seededData as MarketplaceOption[])
