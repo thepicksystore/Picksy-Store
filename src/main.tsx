@@ -5,7 +5,10 @@ import App from './App'
 import './styles.css'
 
 const basename =
-  import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+  window.location.pathname === '/Picksy-Store' ||
+  window.location.pathname.startsWith('/Picksy-Store/')
+    ? '/Picksy-Store'
+    : '/'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
