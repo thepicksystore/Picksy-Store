@@ -128,7 +128,7 @@ export default function AdminLogin({
         />
 
         <div className="admin-login-heading">
-          <h1>Picksy Admin</h1>
+          <h1>Picksy Store Admin</h1>
 
           <p>
             Sign in to manage your Picksy Store.
