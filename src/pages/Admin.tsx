@@ -1367,7 +1367,7 @@ export default function Admin() {
               <div>
                 <h1>Dashboard</h1>
                 <p>
-                  Manage your Picksy products
+                  Manage your Picksy Store products
                 </p>
               </div>
 
@@ -1447,7 +1447,7 @@ export default function Admin() {
 
                     <p>
                       Add your first product to
-                      start building Picksy.
+                      start building Picksy Store.
                     </p>
 
                     <button onClick={openAddForm}>
@@ -1509,7 +1509,7 @@ export default function Admin() {
               <div>
                 <h1>Products</h1>
                 <p>
-                  Manage your Picksy product
+                  Manage your Picksy Store product
                   catalog
                 </p>
               </div>
@@ -2040,7 +2040,7 @@ export default function Admin() {
               <div>
                 <h1>Analytics</h1>
                 <p>
-                  Track your Picksy affiliate
+                  Track your Picksy Store affiliate
                   performance
                 </p>
               </div>
@@ -2672,7 +2672,7 @@ export default function Admin() {
                     Actual commission data will
                     come from marketplace affiliate
                     reports or API data. Click
-                    counts are tracked by Picksy
+                    counts are tracked by Picksy Store
                     and are not treated as earnings.
                   </p>
                 </div>
