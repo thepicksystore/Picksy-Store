@@ -256,6 +256,7 @@ export default function Admin() {
         if (currentSession) {
           loadProducts()
           loadCategories()
+          loadMarketplaces()
         }
       },
     )
@@ -274,6 +275,7 @@ export default function Admin() {
       await Promise.all([
         loadProducts(),
         loadCategories(),
+        loadMarketplaces(),
       ])
     }
 
@@ -318,6 +320,63 @@ export default function Admin() {
     }
 
     setCategories((data ?? []) as Category[])
+  }
+
+
+  async function loadMarketplaces() {
+    const { data, error } = await supabase
+      .from('marketplaces')
+      .select('id, name, slug')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    if ((data ?? []).length > 0) {
+      setMarketplaces(data as MarketplaceOption[])
+      return
+    }
+
+    let localMarketplaces: MarketplaceOption[] = []
+
+    try {
+      const saved = window.localStorage.getItem('picksy-marketplaces')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localMarketplaces = parsed
+        }
+      }
+    } catch {
+      // Use defaults.
+    }
+
+    const seed = localMarketplaces.length > 0
+      ? localMarketplaces
+      : DEFAULT_MARKETPLACES
+
+    const { error: seedError } = await supabase
+      .from('marketplaces')
+      .upsert(
+        seed.map(({ name, slug }) => ({ name, slug })),
+        { onConflict: 'name' },
+      )
+
+    if (seedError) {
+      console.error(seedError)
+      return
+    }
+
+    const { data: seededData, error: reloadError } = await supabase
+      .from('marketplaces')
+      .select('id, name, slug')
+      .order('created_at', { ascending: true })
+
+    if (!reloadError && seededData) {
+      setMarketplaces(seededData as MarketplaceOption[])
+    }
   }
 
   async function loadAffiliateClicks() {
@@ -642,24 +701,47 @@ export default function Admin() {
         (item) => item.id === editingMarketplaceId,
       )
 
-      setMarketplaces((current) =>
-        current.map((item) =>
-          item.id === editingMarketplaceId
-            ? { ...item, name, slug: createSlug(name) }
-            : item,
-        ),
-      )
+      if (!oldMarketplace) return
 
-      if (oldMarketplace && oldMarketplace.name !== name) {
+      const { data, error } = await supabase
+        .from('marketplaces')
+        .update({
+          name,
+          slug: createSlug(name),
+        })
+        .eq('id', editingMarketplaceId)
+        .select('id, name, slug')
+        .single()
+
+      if (error) {
+        console.error(error)
+        showNotice(
+          'error',
+          'Unable to update marketplace: ' + error.message,
+        )
+        return
+      }
+
+      if (oldMarketplace.name !== name) {
         const affectedProducts = products.filter(
           (product) => product.marketplace === oldMarketplace.name,
         )
 
         for (const product of affectedProducts) {
-          await supabase
+          const { error: productError } = await supabase
             .from('products')
             .update({ marketplace: name })
             .eq('id', product.id)
+
+          if (productError) {
+            console.error(productError)
+            showNotice(
+              'error',
+              'Marketplace updated, but product "' + product.name + '" could not be updated.',
+            )
+            await loadProducts()
+            return
+          }
         }
 
         setProducts((current) =>
@@ -670,21 +752,43 @@ export default function Admin() {
           ),
         )
       }
+
+      setMarketplaces((current) =>
+        current.map((item) =>
+          item.id === editingMarketplaceId
+            ? (data as MarketplaceOption)
+            : item,
+        ),
+      )
     } else {
-      setMarketplaces((current) => [
-        ...current,
-        {
-          id: createSlug(name) + '-' + Date.now(),
+      const { data, error } = await supabase
+        .from('marketplaces')
+        .insert({
           name,
           slug: createSlug(name),
-        },
+        })
+        .select('id, name, slug')
+        .single()
+
+      if (error) {
+        console.error(error)
+        showNotice(
+          'error',
+          'Unable to add marketplace: ' + error.message,
+        )
+        return
+      }
+
+      setMarketplaces((current) => [
+        ...current,
+        data as MarketplaceOption,
       ])
     }
 
     cancelEditMarketplace()
   }
 
-  function handleDeleteMarketplace(marketplace: MarketplaceOption) {
+  async function handleDeleteMarketplace(marketplace: MarketplaceOption) {
     const used = products.some(
       (product) => product.marketplace === marketplace.name,
     )
@@ -699,6 +803,20 @@ export default function Admin() {
 
     if (marketplaces.length <= 1) {
       showNotice('error', 'At least one marketplace must remain.')
+      return
+    }
+
+    const { error } = await supabase
+      .from('marketplaces')
+      .delete()
+      .eq('id', marketplace.id)
+
+    if (error) {
+      console.error(error)
+      showNotice(
+        'error',
+        'Unable to delete marketplace: ' + error.message,
+      )
       return
     }
 
@@ -1339,12 +1457,8 @@ export default function Admin() {
     quickFilter,
   ])
 
-  useEffect(() => {
-    window.localStorage.setItem(
-      'picksy-marketplaces',
-      JSON.stringify(marketplaces),
-    )
-  }, [marketplaces])
+  // Marketplace data is stored in Supabase so it is shared across browsers.
+
 
   useEffect(() => {
     if (productsPage > productsTotalPages) {
@@ -1514,13 +1628,6 @@ export default function Admin() {
                 </p>
               </div>
 
-              <button
-                className="admin-add-btn"
-                onClick={openAddForm}
-              >
-                <Plus size={18} />
-                Add Product
-              </button>
             </header>
 
             <section className="admin-stats">
