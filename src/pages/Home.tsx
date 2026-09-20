@@ -648,7 +648,7 @@ export default function Home() {
             </p>
 
             <div className="footer-brand-line">
-              <span>Picksy = curated for you</span>
+              <span>Picksy Store = curated for you</span>
             </div>
           </div>
 
@@ -673,7 +673,7 @@ export default function Home() {
           </div>
 
           <div>
-            <h4>Why Picksy?</h4>
+            <h4>Why Picksy Store?</h4>
 
             <div className="footer-feature">
               <span><Sparkles size={15} /></span>
@@ -739,8 +739,8 @@ export default function Home() {
         </div>
 
         <div className="container footer-bottom">
-          <span>© 2026 Picksy. All rights reserved.</span>
-          <span>Picksy may earn a commission from qualifying purchases.</span>
+          <span>© 2026 Picksy Store. All rights reserved.</span>
+          <span>Picksy Store may earn a commission from qualifying purchases.</span>
           <span className="footer-credit">Designed &amp; Powered by Jay Bhadreshwara</span>
         </div>
       </footer>
