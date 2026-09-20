@@ -93,10 +93,10 @@ export default function Footer() {
       </div>
 
       <div className="container footer-bottom">
-        <span>© 2026 Picksy. All rights reserved.</span>
+        <span>© 2026 Picksy Store. All rights reserved.</span>
 
         <span>
-          Picksy may earn a commission from qualifying purchases.
+          Picksy Store may earn a commission from qualifying purchases.
         </span>
 
         <span className="footer-credit">
