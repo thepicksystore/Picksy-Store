@@ -3506,17 +3506,14 @@ function ProductForm({
                 }
                 disabled={isBusy}
               >
-                <option value="Amazon">
-                  Amazon
-                </option>
-
-                <option value="Flipkart">
-                  Flipkart
-                </option>
-
-                <option value="Meesho">
-                  Meesho
-                </option>
+                {marketplaces.map((marketplace) => (
+                  <option
+                    key={marketplace.id}
+                    value={marketplace.name}
+                  >
+                    {marketplace.name}
+                  </option>
+                ))}
               </select>
             </div>
 
