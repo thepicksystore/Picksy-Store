@@ -1,4 +1,4 @@
-export type Marketplace = 'Amazon' | 'Flipkart' | 'Meesho'
+export type Marketplace = string
 
 export type Product = {
   id: string
