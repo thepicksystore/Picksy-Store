@@ -293,7 +293,7 @@ export default function ProductDetail() {
         </p>
 
         <Link to="/">
-          Back to Picksy
+          Back to Picksy Store
         </Link>
         </main>
         <Footer />
@@ -325,7 +325,7 @@ export default function ProductDetail() {
 
     const shareData = {
       title: product.name,
-      text: `Check out this find on Picksy: ${product.name}`,
+      text: `Check out this find on Picksy Store: ${product.name}`,
       url: window.location.href,
     }
 
@@ -477,7 +477,7 @@ export default function ProductDetail() {
 
             <p>
               {product.description ||
-                'A useful and interesting find curated by Picksy.'}
+                'A useful and interesting find curated by Picksy Store.'}
             </p>
 
             {/* PRICE */}
@@ -610,7 +610,7 @@ export default function ProductDetail() {
 
               <div>
                 <b>
-                  Why Picksy picked this
+                  Why Picksy Store picked this
                 </b>
 
                 <p>
