@@ -29,6 +29,18 @@ type Category = {
   slug: string
 }
 
+type MarketplaceOption = {
+  id: string
+  name: string
+  slug: string
+}
+
+const DEFAULT_MARKETPLACES: MarketplaceOption[] = [
+  { id: 'amazon', name: 'Amazon', slug: 'amazon' },
+  { id: 'flipkart', name: 'Flipkart', slug: 'flipkart' },
+  { id: 'meesho', name: 'Meesho', slug: 'meesho' },
+]
+
 type AdminSection =
   | 'overview'
   | 'products'
@@ -147,6 +159,9 @@ export default function Admin() {
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [marketplaces, setMarketplaces] = useState<MarketplaceOption[]>(
+    DEFAULT_MARKETPLACES,
+  )
 
   const [activeSection, setActiveSection] =
     useState<AdminSection>('overview')
@@ -181,6 +196,10 @@ export default function Admin() {
 
   const [showCategoryForm, setShowCategoryForm] =
     useState(false)
+
+  const [marketplaceName, setMarketplaceName] = useState('')
+  const [editingMarketplaceId, setEditingMarketplaceId] = useState<string | null>(null)
+  const [showMarketplaceForm, setShowMarketplaceForm] = useState(false)
 
   const [affiliateClicks, setAffiliateClicks] =
     useState<AffiliateClick[]>([])
@@ -569,6 +588,64 @@ export default function Admin() {
       'success',
       'Product added successfully.',
     )
+  }
+
+  function startAddMarketplace() {
+    setEditingMarketplaceId(null)
+    setMarketplaceName('')
+    setShowMarketplaceForm(true)
+  }
+
+  function startEditMarketplace(marketplace: MarketplaceOption) {
+    setEditingMarketplaceId(marketplace.id)
+    setMarketplaceName(marketplace.name)
+    setShowMarketplaceForm(true)
+  }
+
+  function cancelEditMarketplace() {
+    setEditingMarketplaceId(null)
+    setMarketplaceName('')
+    setShowMarketplaceForm(false)
+  }
+
+  function handleSaveMarketplace() {
+    const name = marketplaceName.trim()
+    if (!name) return
+    const existing = marketplaces.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase() &&
+        item.id !== editingMarketplaceId,
+    )
+    if (existing) return
+
+    if (editingMarketplaceId) {
+      setMarketplaces((current) =>
+        current.map((item) =>
+          item.id === editingMarketplaceId
+            ? { ...item, name, slug: createSlug(name) }
+            : item,
+        ),
+      )
+    } else {
+      setMarketplaces((current) => [
+        ...current,
+        { id: createSlug(name), name, slug: createSlug(name) },
+      ])
+    }
+    cancelEditMarketplace()
+  }
+
+  function handleDeleteMarketplace(id: string) {
+    if (marketplaces.length <= 1) return
+    const marketplace = marketplaces.find((item) => item.id === id)
+    if (!marketplace) return
+    const used = products.some(
+      (product) => product.marketplace === marketplace.name,
+    )
+    if (used) {
+      showNotice('error', 'This marketplace is used by existing products.')
+      return
+    }
+    setMarketplaces((current) => current.filter((item) => item.id !== id))
   }
 
   function startAddCategory() {
@@ -1780,6 +1857,72 @@ export default function Admin() {
               </div>
             </section>
           </>
+        )}
+
+        {activeSection === 'settings' && (
+          <section className="admin-products-section">
+            <header className="admin-topbar">
+              <div>
+                <h1>Settings</h1>
+                <p>Manage your Picksy Store admin settings</p>
+              </div>
+            </header>
+            <div className="admin-category-manager">
+              <div className="admin-category-list">
+                <div className="admin-category-list-header">
+                  <div>
+                    <h2>Marketplaces</h2>
+                    <p>Add, rename or remove marketplaces for products.</p>
+                  </div>
+                  <button className="admin-add-btn" onClick={startAddMarketplace}>
+                    <Plus size={18} /> Add Marketplace
+                  </button>
+                </div>
+                {showMarketplaceForm && (
+                  <div className="admin-category-form">
+                    <h2>{editingMarketplaceId ? 'Edit Marketplace' : 'Add Marketplace'}</h2>
+                    <div className="admin-category-input-row">
+                      <input
+                        value={marketplaceName}
+                        onChange={(e) => setMarketplaceName(e.target.value)}
+                        placeholder="e.g. Myntra"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveMarketplace()
+                          if (e.key === 'Escape') cancelEditMarketplace()
+                        }}
+                      />
+                      <button className="admin-primary-btn" onClick={handleSaveMarketplace}>
+                        <CheckCircle2 size={17} /> Save
+                      </button>
+                      <button className="admin-secondary-btn" onClick={cancelEditMarketplace}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="admin-category-grid">
+                  {marketplaces.map((marketplace) => (
+                    <div className="admin-category-card" key={marketplace.id}>
+                      <div className="admin-category-icon"><Tags size={20} /></div>
+                      <div className="admin-category-info">
+                        <strong>{marketplace.name}</strong>
+                        <span>Marketplace</span>
+                      </div>
+                      <div className="admin-category-actions">
+                        <button className="edit-btn" onClick={() => startEditMarketplace(marketplace)} title="Edit marketplace">
+                          <Pencil size={16} />
+                        </button>
+                        <button className="delete-btn" onClick={() => handleDeleteMarketplace(marketplace.id)} title="Delete marketplace">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
         )}
 
         {activeSection === 'categories' && (
@@ -3238,17 +3381,11 @@ function ProductForm({
                 }
                 disabled={isBusy}
               >
-                <option value="Amazon">
-                  Amazon
-                </option>
-
-                <option value="Flipkart">
-                  Flipkart
-                </option>
-
-                <option value="Meesho">
-                  Meesho
-                </option>
+                {marketplaces.map((marketplace) => (
+                  <option key={marketplace.id} value={marketplace.name}>
+                    {marketplace.name}
+                  </option>
+                ))}
               </select>
             </div>
 
