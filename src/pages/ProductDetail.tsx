@@ -473,13 +473,6 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            {/* DESCRIPTION */}
-
-            <p>
-              {product.description ||
-                'A useful and interesting find curated by Picksy Store.'}
-            </p>
-
             {/* PRICE */}
 
             <div className="detail-price">
@@ -598,6 +591,17 @@ export default function ProductDetail() {
                 {shareMessage}
               </div>
             )}
+
+            {/* =========================
+                DESCRIPTION
+            ========================= */}
+
+            <div className="detail-description">
+              <p>
+                {product.description ||
+                  'A useful and interesting find curated by Picksy Store.'}
+              </p>
+            </div>
 
             {/* =========================
                 PICKSY NOTE
