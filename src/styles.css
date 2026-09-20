@@ -6459,3 +6459,14 @@ textarea{
     grid-template-columns:1fr !important;
   }
 }
+
+/* Product detail content order */
+.detail-description{
+  margin-top: 18px;
+}
+
+.detail-description p{
+  margin: 0;
+  color: #667085;
+  line-height: 1.7;
+}
