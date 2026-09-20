@@ -7,7 +7,6 @@ import {
   Heart,
   Search,
   ShoppingCart,
-  User,
   Menu,
   X,
   ChevronDown,
@@ -205,18 +204,6 @@ export default function Header({
               </span>
               <span>Cart</span>
             </button>
-
-            <Link
-              to="/auth"
-              className="header-action-link"
-              aria-label="Login or Sign Up"
-              onClick={() => setOpen(false)}
-            >
-              <span className="header-action-icon">
-                <User size={30} strokeWidth={1.7} />
-              </span>
-              <span>Login / Sign Up</span>
-            </Link>
           </div>
         </div>
       </div>
