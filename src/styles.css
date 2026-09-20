@@ -795,22 +795,6 @@ a{
 .marketplace:before{
   display:none;
 }
-  content:"";
-  display:inline-block;
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  background:#111;
-  margin-right:4px;
-}
-
-.marketplace.flipkart:before{
-  background:#f5bb2d;
-}
-
-.marketplace.meesho:before{
-  background:#d34a8e;
-}
 
 .rating{
   font-size:8px;
