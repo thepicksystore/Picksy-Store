@@ -164,10 +164,12 @@ export default function Admin() {
       const saved = window.localStorage.getItem('picksy-marketplaces')
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+        }
       }
     } catch {
-      // Use defaults when saved settings cannot be read.
+      // Fall back to defaults.
     }
     return DEFAULT_MARKETPLACES
   })
@@ -206,13 +208,12 @@ export default function Admin() {
   const [showCategoryForm, setShowCategoryForm] =
     useState(false)
 
-  const [marketplaceName, setMarketplaceName] = useState('')
-  const [editingMarketplaceId, setEditingMarketplaceId] = useState<string | null>(null)
-  const [showMarketplaceForm, setShowMarketplaceForm] = useState(false)
-
-  useEffect(() => {
-    window.localStorage.setItem('picksy-marketplaces', JSON.stringify(marketplaces))
-  }, [marketplaces])
+  const [marketplaceName, setMarketplaceName] =
+    useState('')
+  const [editingMarketplaceId, setEditingMarketplaceId] =
+    useState<string | null>(null)
+  const [showMarketplaceForm, setShowMarketplaceForm] =
+    useState(false)
 
   const [affiliateClicks, setAffiliateClicks] =
     useState<AffiliateClick[]>([])
@@ -621,16 +622,26 @@ export default function Admin() {
     setShowMarketplaceForm(false)
   }
 
-  function handleSaveMarketplace() {
+  async function handleSaveMarketplace() {
     const name = marketplaceName.trim()
     if (!name) return
+
     const existing = marketplaces.find(
-      (item) => item.name.toLowerCase() === name.toLowerCase() &&
+      (item) =>
+        item.name.toLowerCase() === name.toLowerCase() &&
         item.id !== editingMarketplaceId,
     )
-    if (existing) return
+
+    if (existing) {
+      showNotice('error', 'That marketplace already exists.')
+      return
+    }
 
     if (editingMarketplaceId) {
+      const oldMarketplace = marketplaces.find(
+        (item) => item.id === editingMarketplaceId,
+      )
+
       setMarketplaces((current) =>
         current.map((item) =>
           item.id === editingMarketplaceId
@@ -638,27 +649,62 @@ export default function Admin() {
             : item,
         ),
       )
+
+      if (oldMarketplace && oldMarketplace.name !== name) {
+        const affectedProducts = products.filter(
+          (product) => product.marketplace === oldMarketplace.name,
+        )
+
+        for (const product of affectedProducts) {
+          await supabase
+            .from('products')
+            .update({ marketplace: name })
+            .eq('id', product.id)
+        }
+
+        setProducts((current) =>
+          current.map((product) =>
+            product.marketplace === oldMarketplace.name
+              ? { ...product, marketplace: name }
+              : product,
+          ),
+        )
+      }
     } else {
       setMarketplaces((current) => [
         ...current,
-        { id: createSlug(name), name, slug: createSlug(name) },
+        {
+          id: createSlug(name) + '-' + Date.now(),
+          name,
+          slug: createSlug(name),
+        },
       ])
     }
+
     cancelEditMarketplace()
   }
 
-  function handleDeleteMarketplace(id: string) {
-    if (marketplaces.length <= 1) return
-    const marketplace = marketplaces.find((item) => item.id === id)
-    if (!marketplace) return
+  function handleDeleteMarketplace(marketplace: MarketplaceOption) {
     const used = products.some(
       (product) => product.marketplace === marketplace.name,
     )
+
     if (used) {
-      showNotice('error', 'This marketplace is used by existing products.')
+      showNotice(
+        'error',
+        'This marketplace is used by existing products. Rename it instead of deleting it.',
+      )
       return
     }
-    setMarketplaces((current) => current.filter((item) => item.id !== id))
+
+    if (marketplaces.length <= 1) {
+      showNotice('error', 'At least one marketplace must remain.')
+      return
+    }
+
+    setMarketplaces((current) =>
+      current.filter((item) => item.id !== marketplace.id),
+    )
   }
 
   function startAddCategory() {
@@ -1294,6 +1340,13 @@ export default function Admin() {
   ])
 
   useEffect(() => {
+    window.localStorage.setItem(
+      'picksy-marketplaces',
+      JSON.stringify(marketplaces),
+    )
+  }, [marketplaces])
+
+  useEffect(() => {
     if (productsPage > productsTotalPages) {
       setProductsPage(productsTotalPages)
     }
@@ -1728,14 +1781,6 @@ export default function Admin() {
                     All Marketplaces
                   </option>
 
-                  <option value="Amazon">
-                    Amazon
-                  </option>
-
-                  <option value="Flipkart">
-                    Flipkart
-                  </option>
-
                   {marketplaces.map((marketplace) => (
                     <option key={marketplace.id} value={marketplace.name}>
                       {marketplace.name}
@@ -1872,77 +1917,6 @@ export default function Admin() {
               </div>
             </section>
           </>
-        )}
-
-        {activeSection === 'settings' && (
-          <section className="admin-products-section">
-            <header className="admin-topbar">
-              <div>
-                <h1>Settings</h1>
-                <p>Manage your Picksy Store admin settings</p>
-              </div>
-            </header>
-            <div className="admin-category-manager">
-              <div className="admin-category-list">
-                <div className="admin-category-list-header">
-                  <div>
-                    <h2>Marketplaces</h2>
-                    <p>Add, rename or remove marketplaces for products.</p>
-                  </div>
-                  <button className="admin-add-btn" onClick={startAddMarketplace}>
-                    <Plus size={18} /> Add Marketplace
-                  </button>
-                </div>
-                {showMarketplaceForm && (
-                  <div className="admin-category-form">
-                    <h2>{editingMarketplaceId ? 'Edit Marketplace' : 'Add Marketplace'}</h2>
-                    <div className="admin-category-input-row">
-                      <input
-                        value={marketplaceName}
-                        onChange={(e) => setMarketplaceName(e.target.value)}
-                        placeholder="e.g. Myntra"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveMarketplace()
-                          if (e.key === 'Escape') cancelEditMarketplace()
-                        }}
-                      />
-                      <button className="admin-primary-btn" onClick={handleSaveMarketplace}>
-                        <CheckCircle2 size={17} /> Save
-                      </button>
-                      <button className="admin-secondary-btn" onClick={cancelEditMarketplace}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <div className="admin-category-grid">
-                  {marketplaces.map((marketplace) => (
-                    <div className="admin-category-card" key={marketplace.id}>
-                      <div className="admin-category-icon"><Tags size={20} /></div>
-                      <div className="admin-category-info">
-                        <strong>{marketplace.name}</strong>
-                        <span>Marketplace</span>
-                      </div>
-                      <div className="admin-category-actions">
-                        <button className="edit-btn" onClick={() => startEditMarketplace(marketplace)} title="Edit marketplace">
-                          <Pencil size={16} />
-                        </button>
-                        <button className="delete-btn" onClick={() => handleDeleteMarketplace(marketplace.id)} title="Delete marketplace">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <AdminSettings
-              onLogout={handleLogout}
-              disabled={false}
-            />
-          </section>
         )}
 
         {activeSection === 'categories' && (
@@ -2844,4 +2818,1107 @@ export default function Admin() {
           </section>
         )}
 
+        {activeSection === 'settings' && (
+          <>
+            <section className="admin-products-section">
+              <header className="admin-topbar">
+                <div>
+                  <h1>Marketplaces</h1>
+                  <p>
+                    Manage the marketplaces available when adding products.
+                  </p>
+                </div>
+
+                <button
+                  className="admin-add-btn"
+                  onClick={startAddMarketplace}
+                >
+                  <Plus size={18} />
+                  Add Marketplace
+                </button>
+              </header>
+
+              <div className="admin-category-manager">
+                {showMarketplaceForm && (
+                  <div className="admin-category-form">
+                    <h2>
+                      {editingMarketplaceId
+                        ? 'Edit Marketplace'
+                        : 'Add Marketplace'}
+                    </h2>
+
+                    <div className="admin-category-input-row">
+                      <input
+                        value={marketplaceName}
+                        onChange={(e) =>
+                          setMarketplaceName(e.target.value)
+                        }
+                        placeholder="e.g. Myntra"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            void handleSaveMarketplace()
+                          }
+                          if (e.key === 'Escape') {
+                            cancelEditMarketplace()
+                          }
+                        }}
+                      />
+
+                      <button
+                        className="admin-primary-btn"
+                        onClick={() => void handleSaveMarketplace()}
+                      >
+                        <CheckCircle2 size={17} />
+                        Save
+                      </button>
+
+                      <button
+                        className="admin-secondary-btn"
+                        onClick={cancelEditMarketplace}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="admin-category-list">
+                  <div className="admin-category-list-header">
+                    <div>
+                      <h2>All Marketplaces</h2>
+                      <p>
+                        {marketplaces.length}{' '}
+                        {marketplaces.length === 1
+                          ? 'marketplace'
+                          : 'marketplaces'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="admin-category-grid">
+                    {marketplaces.map((marketplace) => (
+                      <div
+                        className="admin-category-card"
+                        key={marketplace.id}
+                      >
+                        <div className="admin-category-icon">
+                          <Tags size={20} />
+                        </div>
+
+                        <div className="admin-category-info">
+                          <strong>{marketplace.name}</strong>
+                          <span>
+                            {products.filter(
+                              (product) =>
+                                product.marketplace === marketplace.name,
+                            ).length}{' '}
+                            products
+                          </span>
+                        </div>
+
+                        <div className="admin-category-actions">
+                          <button
+                            className="edit-btn"
+                            onClick={() =>
+                              startEditMarketplace(marketplace)
+                            }
+                            title="Edit marketplace"
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+                          <button
+                            className="delete-btn"
+                            onClick={() =>
+                              handleDeleteMarketplace(marketplace)
+                            }
+                            title="Delete marketplace"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <AdminSettings
+              session={session}
+              onLogout={handleLogout}
+            />
+          </>
+        )}
+      </main>
+
+      {showForm && (
+        <ProductForm
+          product={
+            editingProduct ?? {
+              ...emptyProduct,
+              category:
+                categories[0]?.name ||
+                emptyProduct.category,
+            }
+          }
+          categories={categories}
+          marketplaces={marketplaces}
+          onClose={() => {
+            if (saving) return
+
+            setShowForm(false)
+            setEditingProduct(null)
+          }}
+          onSave={handleSave}
+          saving={saving}
+        />
+      )}
+    </div>
+  )
+}
+
+type PaginationProps = {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}
+
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: PaginationProps) {
+  if (totalPages <= 1) return null
+
+  const pages: number[] = []
+
+  if (totalPages <= 7) {
+    for (
+      let page = 1;
+      page <= totalPages;
+      page += 1
+    ) {
+      pages.push(page)
+    }
+  } else {
+    pages.push(1)
+
+    if (currentPage > 4) {
+      pages.push(-1)
+    }
+
+    const start = Math.max(
+      2,
+      currentPage - 1,
+    )
+
+    const end = Math.min(
+      totalPages - 1,
+      currentPage + 1,
+    )
+
+    for (
+      let page = start;
+      page <= end;
+      page += 1
+    ) {
+      pages.push(page)
+    }
+
+    if (
+      currentPage <
+      totalPages - 3
+    ) {
+      pages.push(-2)
+    }
+
+    pages.push(totalPages)
+  }
+
+  return (
+    <div className="admin-pagination">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          flexWrap: 'wrap',
+          padding: '20px 0 4px',
+        }}
+      >
+        <button
+          type="button"
+          className="admin-secondary-btn"
+          onClick={() =>
+            onPageChange(currentPage - 1)
+          }
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          {pages.map((page, index) =>
+            page < 0 ? (
+              <span
+                key={`ellipsis-${index}`}
+                style={{
+                  padding: '0 4px',
+                  color:
+                    'var(--text-muted, #777)',
+                }}
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                type="button"
+                key={page}
+                onClick={() =>
+                  onPageChange(page)
+                }
+                aria-current={
+                  currentPage === page
+                    ? 'page'
+                    : undefined
+                }
+                style={{
+                  minWidth: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  border:
+                    currentPage === page
+                      ? '1px solid #222'
+                      : '1px solid #e5e5e5',
+                  background:
+                    currentPage === page
+                      ? '#222'
+                      : '#fff',
+                  color:
+                    currentPage === page
+                      ? '#fff'
+                      : '#333',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                {page}
+              </button>
+            ),
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="admin-secondary-btn"
+          onClick={() =>
+            onPageChange(currentPage + 1)
+          }
+          disabled={
+            currentPage === totalPages
+          }
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )
+}
+
+type AnalyticsPeriodTabsProps = {
+  value: AnalyticsView
+  onChange: (value: AnalyticsView) => void
+}
+
+function AnalyticsPeriodTabs({
+  value,
+  onChange,
+}: AnalyticsPeriodTabsProps) {
+  const options: {
+    value: AnalyticsView
+    label: string
+  }[] = [
+    { value: 'day', label: 'Day' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+  ]
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: 4,
+        border: '1px solid #e5e7eb',
+        borderRadius: 10,
+        background: '#f8f9fb',
+      }}
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() =>
+            onChange(option.value)
+          }
+          style={{
+            border: 'none',
+            borderRadius: 7,
+            padding: '8px 14px',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            background:
+              value === option.value
+                ? '#111827'
+                : 'transparent',
+            color:
+              value === option.value
+                ? '#ffffff'
+                : '#6b7280',
+            transition:
+              'all 0.2s ease',
+          }}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+type ProductTableRowProps = {
+  product: Product
+  onEdit: (product: Product) => void
+  onDelete: (id: string) => void
+  deletingId: string | null
+}
+
+function ProductTableRow({
+  product,
+  onEdit,
+  onDelete,
+  deletingId,
+}: ProductTableRowProps) {
+  const isDeleting =
+    deletingId === product.id
+
+  return (
+    <tr>
+      <td>
+        <div className="admin-product-cell">
+          <div className="admin-product-image">
+            {product.image ? (
+              <img
+                src={product.image}
+                alt={product.name}
+              />
+            ) : (
+              <ImagePlus size={20} />
+            )}
+          </div>
+
+          <div>
+            <strong>{product.name}</strong>
+
+            <div className="admin-product-rating">
+              ⭐ {product.rating || 0} ·{' '}
+              {product.reviews || 0} reviews
+            </div>
+          </div>
+        </div>
+      </td>
+
+      <td>
+        <span className="marketplace-badge">
+          {product.marketplace}
+        </span>
+      </td>
+
+      <td>{product.category}</td>
+
+      <td>
+        <strong>₹{product.price}</strong>
+      </td>
+
+      <td>
+        {product.published ? (
+          <span className="status-badge published">
+            <CheckCircle2 size={14} />
+            Published
+          </span>
+        ) : (
+          <span className="status-badge unpublished">
+            Unpublished
+          </span>
+        )}
+      </td>
+
+      <td>
+        <div className="admin-tags">
+          {product.trending && (
+            <span>🔥 Trending</span>
+          )}
+
+          {product.isNew && (
+            <span>🆕 New</span>
+          )}
+
+          {product.picksyPick && (
+            <span>⭐ Picksy</span>
+          )}
+        </div>
+      </td>
+
+      <td>
+        <div className="admin-actions">
+          <button
+            className="edit-btn"
+            onClick={() =>
+              onEdit(product)
+            }
+            title="Edit product"
+            disabled={isDeleting}
+          >
+            <Pencil size={16} />
+          </button>
+
+          <button
+            className="delete-btn"
+            onClick={() =>
+              onDelete(product.id)
+            }
+            title="Delete product"
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <span className="admin-action-loading">
+                ...
+              </span>
+            ) : (
+              <Trash2 size={16} />
+            )}
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+type ProductFormProps = {
+  product: Product
+  categories: Category[]
+  marketplaces: MarketplaceOption[]
+  onClose: () => void
+  onSave: (
+    product: Product,
+  ) => Promise<void>
+  saving: boolean
+}
+
+function ProductForm({
+  product,
+  categories,
+  marketplaces,
+  onClose,
+  onSave,
+  saving,
+}: ProductFormProps) {
+  const [form, setForm] =
+    useState<Product>({
+      ...product,
+      published:
+        product.published ?? true,
+    })
+
+  const [uploading, setUploading] =
+    useState(false)
+
+  function updateField<
+    K extends keyof Product,
+  >(
+    key: K,
+    value: Product[K],
+  ) {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }))
+  }
+
+  async function uploadImage(
+    file: File,
+  ) {
+    if (!file.type.startsWith('image/')) {
+      alert(
+        'Please select an image file.',
+      )
+      return
+    }
+
+    if (
+      file.size >
+      5 * 1024 * 1024
+    ) {
+      alert(
+        'Image size should be less than 5 MB.',
+      )
+      return
+    }
+
+    setUploading(true)
+
+    const extension =
+      file.name
+        .split('.')
+        .pop()
+        ?.toLowerCase() ||
+      'jpg'
+
+    const fileName = `products/${crypto.randomUUID()}.${extension}`
+
+    const { error } =
+      await supabase.storage
+        .from('product-images')
+        .upload(
+          fileName,
+          file,
+          {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type,
+          },
+        )
+
+    if (error) {
+      console.error(error)
+
+      setUploading(false)
+
+      alert(
+        `Unable to upload image: ${error.message}`,
+      )
+
+      return
+    }
+
+    const { data } =
+      supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName)
+
+    setForm((current) => {
+      const nextImages = [...(current.images ?? [])]
+      nextImages.push(data.publicUrl)
+      return {
+        ...current,
+        image: nextImages[0] ?? '',
+        images: nextImages,
+      }
+    })
+
+    setUploading(false)
+  }
+
+  const discount =
+    form.originalPrice > form.price &&
+    form.originalPrice > 0
+      ? Math.round(
+          ((form.originalPrice -
+            form.price) /
+            form.originalPrice) *
+            100,
+        )
+      : 0
+
+  const isBusy =
+    uploading || saving
+
+  return (
+    <div className="admin-modal-backdrop">
+      <div className="admin-modal">
+        <div className="admin-modal-header">
+          <div>
+            <h2>
+              {form.id
+                ? 'Edit Product'
+                : 'Add Product'}
+            </h2>
+
+            <p>
+              Enter product information below.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            disabled={isBusy}
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="admin-form">
+          <div className="admin-form-grid">
+            <div className="admin-field full">
+              <label>
+                Product Name
+              </label>
+
+              <input
+                value={form.name}
+                onChange={(e) =>
+                  updateField(
+                    'name',
+                    e.target.value,
+                  )
+                }
+                placeholder="Enter product name"
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label>
+                Marketplace
+              </label>
+
+              <select
+                value={form.marketplace}
+                onChange={(e) =>
+                  updateField(
+                    'marketplace',
+                    e.target
+                      .value as Marketplace,
+                  )
+                }
+                disabled={isBusy}
+              >
+                <option value="Amazon">
+                  Amazon
+                </option>
+
+                <option value="Flipkart">
+                  Flipkart
+                </option>
+
+                <option value="Meesho">
+                  Meesho
+                </option>
+              </select>
+            </div>
+
+            <div className="admin-field">
+              <label>Category</label>
+
+              <select
+                value={form.category}
+                onChange={(e) =>
+                  updateField(
+                    'category',
+                    e.target.value,
+                  )
+                }
+                disabled={
+                  isBusy ||
+                  categories.length === 0
+                }
+              >
+                {categories.length === 0 ? (
+                  <option value="">
+                    No categories available
+                  </option>
+                ) : (
+                  categories.map(
+                    (category) => (
+                      <option
+                        key={category.id}
+                        value={
+                          category.name
+                        }
+                      >
+                        {category.name}
+                      </option>
+                    ),
+                  )
+                )}
+              </select>
+            </div>
+
+            <div className="admin-field">
+              <label>Price</label>
+
+              <input
+                type="number"
+                min="0"
+                value={form.price}
+                onChange={(e) =>
+                  updateField(
+                    'price',
+                    Number(
+                      e.target.value,
+                    ),
+                  )
+                }
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label>
+                Original Price
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                value={
+                  form.originalPrice
+                }
+                onChange={(e) =>
+                  updateField(
+                    'originalPrice',
+                    Number(
+                      e.target.value,
+                    ),
+                  )
+                }
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label>Rating</label>
+
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={form.rating}
+                onChange={(e) =>
+                  updateField(
+                    'rating',
+                    Number(
+                      e.target.value,
+                    ),
+                  )
+                }
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label>Reviews</label>
+
+              <input
+                type="number"
+                min="0"
+                value={form.reviews}
+                onChange={(e) =>
+                  updateField(
+                    'reviews',
+                    e.target.value,
+                  )
+                }
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label>Badge</label>
+
+              <input
+                value={form.badge ?? ''}
+                onChange={(e) =>
+                  updateField(
+                    'badge',
+                    e.target.value,
+                  )
+                }
+                placeholder="Best Seller / Hot Deal"
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field full">
+              <label>
+                Affiliate URL
+              </label>
+
+              <input
+                type="url"
+                value={
+                  form.affiliateUrl ?? ''
+                }
+                onChange={(e) =>
+                  updateField(
+                    'affiliateUrl',
+                    e.target.value,
+                  )
+                }
+                placeholder="https://www.amazon.in/..."
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field full">
+              <label>Description</label>
+
+              <textarea
+                rows={5}
+                value={
+                  form.description
+                }
+                onChange={(e) =>
+                  updateField(
+                    'description',
+                    e.target.value,
+                  )
+                }
+                placeholder="Write product description..."
+                disabled={isBusy}
+              />
+            </div>
+
+            <div className="admin-field full">
+              <label>
+                Product Image
+              </label>
+
+              <div className="admin-image-upload">
+                {(form.images ?? []).length > 0 ? (
+                  <div className="admin-image-gallery">
+                    {(form.images ?? []).map((src, index) => (
+                      <div className="admin-image-thumb" key={src}>
+                        <img src={src} alt={`${form.name || 'Product'} image ${index + 1}`} />
+                        <div className="admin-image-thumb-actions">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm((current) => {
+                                const images = (current.images ?? []).filter((_, i) => i !== index)
+                                return {
+                                  ...current,
+                                  images,
+                                  image: images[0] ?? '',
+                                }
+                              })
+                            }}
+                            disabled={isBusy}
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        {index === 0 && (
+                          <span className="admin-image-main-label">Main</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="admin-image-placeholder">
+                    <ImagePlus size={30} />
+                    <div>
+                      <strong>No images selected</strong>
+                      <small>Add one or more product images</small>
+                    </div>
+                  </div>
+                )}
+
+                <label className={`upload-button ${
+                  isBusy ? 'is-disabled' : ''
+                }`}>
+                  <Upload size={17} />
+                  {uploading ? 'Uploading...' : 'Add Image'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    disabled={isBusy}
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files ?? [])
+                      for (const file of files) {
+                        await uploadImage(file)
+                      }
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                <small className="admin-upload-help">
+                  First image is used as the main product image.
+                </small>
+              </div>
+            </div>
+          </div>
+
+          {discount > 0 && (
+            <div className="discount-preview">
+              <strong>
+                {discount}% OFF
+              </strong>
+
+              <span>
+                Discount will be calculated
+                automatically.
+              </span>
+            </div>
+          )}
+
+          <div className="admin-toggle-section">
+            <ToggleOption
+              title="Published"
+              description="Visible on the public website"
+              checked={
+                form.published ??
+                true
+              }
+              onChange={(checked) =>
+                updateField(
+                  'published',
+                  checked,
+                )
+              }
+              disabled={isBusy}
+            />
+
+            <ToggleOption
+              title="Trending"
+              description="Show in Trending Now"
+              checked={
+                form.trending ??
+                false
+              }
+              onChange={(checked) =>
+                updateField(
+                  'trending',
+                  checked,
+                )
+              }
+              disabled={isBusy}
+            />
+
+            <ToggleOption
+              title="New Find"
+              description="Show in New Finds"
+              checked={
+                form.isNew ?? false
+              }
+              onChange={(checked) =>
+                updateField(
+                  'isNew',
+                  checked,
+                )
+              }
+              disabled={isBusy}
+            />
+
+            <ToggleOption
+              title="Picksy Pick"
+              description="Feature as a Picksy Pick"
+              checked={
+                form.picksyPick ??
+                false
+              }
+              onChange={(checked) =>
+                updateField(
+                  'picksyPick',
+                  checked,
+                )
+              }
+              disabled={isBusy}
+            />
+          </div>
+
+          <div className="admin-form-actions">
+            <button
+              className="admin-secondary-btn"
+              onClick={onClose}
+              disabled={isBusy}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="admin-primary-btn"
+              onClick={() =>
+                onSave(form)
+              }
+              disabled={
+                isBusy ||
+                categories.length === 0
+              }
+            >
+              <CheckCircle2 size={17} />
+
+              {uploading
+                ? 'Uploading...'
+                : saving
+                  ? form.id
+                    ? 'Updating...'
+                    : 'Saving...'
+                  : form.id
+                    ? 'Update Product'
+                    : 'Save Product'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type ToggleOptionProps = {
+  title: string
+  description: string
+  checked: boolean
+  onChange: (
+    checked: boolean,
+  ) => void
+  disabled?: boolean
+}
+
+function ToggleOption({
+  title,
+  description,
+  checked,
+  onChange,
+  disabled = false,
+}: ToggleOptionProps) {
+  return (
+    <button
+      type="button"
+      className={`admin-toggle-option ${
+        checked ? 'is-on' : ''
+      }`}
+      onClick={() =>
+        onChange(!checked)
+      }
+      aria-pressed={checked}
+      disabled={disabled}
+    >
+      <div className="admin-toggle-content">
+        <strong>{title}</strong>
+        <span>{description}</span>
+      </div>
+
+      <span className="admin-switch">
+        <span className="admin-switch-knob" />
+      </span>
+    </button>
+  )
 }
