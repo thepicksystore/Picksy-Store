@@ -693,9 +693,108 @@ a{
   font-size:8px;
   font-weight:800;
   color:#303550;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+}
+
+.marketplace-name{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.marketplace-logo{
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
+  display:inline-grid;
+  place-items:center;
+  position:relative;
+  border-radius:5px;
+  overflow:hidden;
+  font-size:11px;
+  line-height:1;
+  box-shadow:0 1px 3px rgba(25,25,45,.12);
+}
+
+.marketplace-logo b{
+  position:relative;
+  z-index:2;
+}
+
+.marketplace-logo-amazon{
+  background:#fff;
+  color:#111;
+  font-family:Arial,sans-serif;
+  border:1px solid #e5e5e5;
+}
+
+.marketplace-logo-amazon b{
+  font-size:14px;
+  font-weight:800;
+  transform:translateY(-1px);
+}
+
+.marketplace-logo-amazon i{
+  position:absolute;
+  width:9px;
+  height:4px;
+  left:4px;
+  bottom:3px;
+  border-bottom:2px solid #f6a800;
+  border-radius:50%;
+  transform:rotate(8deg);
+}
+
+.marketplace-logo-flipkart{
+  background:#ffd900;
+  color:#1557c0;
+  border-radius:5px;
+  font-size:12px;
+  font-weight:900;
+  font-family:Arial,sans-serif;
+}
+
+.marketplace-logo-flipkart:after{
+  content:"";
+  position:absolute;
+  width:5px;
+  height:5px;
+  right:2px;
+  bottom:2px;
+  border-radius:50%;
+  background:#1557c0;
+}
+
+.marketplace-logo-meesho{
+  background:#fff;
+  color:#d63f86;
+  border:1px solid #f0d8e5;
+  font-family:Arial,sans-serif;
+  font-size:12px;
+  font-weight:900;
+}
+
+.marketplace-logo-myntra{
+  background:linear-gradient(135deg,#ff3d7f,#ff8a00);
+  color:#fff;
+  font-family:Arial,sans-serif;
+  font-size:10px;
+  font-weight:900;
+}
+
+.marketplace-logo-generic{
+  background:#f1eef3;
+  color:#6f6370;
+  border:1px solid #e1dbe0;
+  font-size:10px;
 }
 
 .marketplace:before{
+  display:none;
+}
   content:"";
   display:inline-block;
   width:6px;
