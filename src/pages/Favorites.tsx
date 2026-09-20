@@ -296,7 +296,7 @@ export default function Favorites() {
                   className="primary-cta favorites-browse-button"
                   to="/"
                 >
-                  Explore Picksy
+                  Explore Picksy Store
                 </Link>
               </div>
             )}
