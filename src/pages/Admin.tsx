@@ -1122,25 +1122,26 @@ export default function Admin() {
     ).sort((a, b) => b[1] - a[1])
   }, [analyticsFilteredClicks])
 
-  const deviceBreakdown = useMemo(() => {
+  const categoryBreakdown = useMemo(() => {
     const counts = new Map<string, number>()
 
-    analyticsFilteredClicks.forEach(
-      (click) => {
-        const device =
-          click.device_type || 'Unknown'
+    analyticsFilteredClicks.forEach((click) => {
+      const product = products.find(
+        (item) => item.id === click.product_id,
+      )
+      const category = product?.category || 'Unknown'
 
-        counts.set(
-          device,
-          (counts.get(device) || 0) + 1,
-        )
-      },
-    )
+      counts.set(
+        category,
+        (counts.get(category) || 0) + 1,
+      )
+    })
 
     return Array.from(
       counts.entries(),
     ).sort((a, b) => b[1] - a[1])
-  }, [analyticsFilteredClicks])
+  }, [analyticsFilteredClicks, products])
+
 
   const topClickedProducts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -2105,19 +2106,6 @@ export default function Admin() {
                 </strong>
               </div>
 
-              <div className="admin-stat-card">
-                <span>Products</span>
-                <strong>
-                  {products.length}
-                </strong>
-              </div>
-
-              <div className="admin-stat-card">
-                <span>Affiliate Links</span>
-                <strong>
-                  {analyticsStats.affiliateLinks}
-                </strong>
-              </div>
             </section>
 
             <section className="admin-products-section">
@@ -2391,26 +2379,26 @@ export default function Admin() {
               >
                 <div className="admin-section-header">
                   <div>
-                    <h2>Devices</h2>
+                    <h2>Category</h2>
                     <p>
-                      Visitor device breakdown
+                      Clicks by product category
                     </p>
                   </div>
                 </div>
 
-                {deviceBreakdown.length ===
+                {categoryBreakdown.length ===
                 0 ? (
                   <div
                     className="admin-empty"
                     style={{ minHeight: 120 }}
                   >
                     <p>
-                      No device data yet.
+                      No category data yet.
                     </p>
                   </div>
                 ) : (
                   <div>
-                    {deviceBreakdown.map(
+                    {categoryBreakdown.map(
                       ([name, count]) => (
                         <div
                           key={name}
@@ -2426,12 +2414,7 @@ export default function Admin() {
                               '1px solid #eef0f4',
                           }}
                         >
-                          <strong
-                            style={{
-                              textTransform:
-                                'capitalize',
-                            }}
-                          >
+                          <strong>
                             {name}
                           </strong>
 
