@@ -55,7 +55,7 @@ const categoryDescriptions: Record<string, string> = {
     'Festive finds for celebrations, gifting and decoration.',
 
   more:
-    'Explore all the latest Picksy finds in one place.',
+    'Explore all the latest Picksy Store finds in one place.',
 }
 
 const categoryIcons: Record<string, string> = {
@@ -129,7 +129,7 @@ export default function Category() {
 
         setCategoryDescription(
           categoryDescriptions[data.slug] ??
-            `Explore ${data.name} finds curated by Picksy.`
+            `Explore ${data.name} finds curated by Picksy Store.`
         )
 
         return
@@ -149,7 +149,7 @@ export default function Category() {
       setCategoryNameValue(fallbackName)
       setCategoryDescription(
         categoryDescriptions[categoryKey] ??
-          `Explore ${fallbackName} finds curated by Picksy.`
+          `Explore ${fallbackName} finds curated by Picksy Store.`
       )
     }
 
@@ -569,7 +569,7 @@ export default function Category() {
           <Section
             id="category-new"
             title="New Finds"
-            eyebrow="Fresh additions to Picksy"
+            eyebrow="Fresh additions to Picksy Store"
             icon={
               <span>✨</span>
             }
@@ -844,12 +844,12 @@ export default function Category() {
 
         <div className="container footer-bottom">
           <span>
-            © 2026 Picksy. All rights
+            © 2026 Picksy Store. All rights
             reserved.
           </span>
 
           <span>
-            Picksy may earn a commission
+            Picksy Store may earn a commission
             from qualifying purchases.
           </span>
         </div>
