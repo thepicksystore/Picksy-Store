@@ -125,7 +125,7 @@ export default function AdminSettings({
           <h1>Settings</h1>
 
           <p>
-            Manage your Picksy admin account
+            Manage your Picksy Store admin account
             and security
           </p>
         </div>
@@ -161,7 +161,7 @@ export default function AdminSettings({
               <h2>Admin Account</h2>
 
               <p>
-                Your current Picksy admin account
+                Your current Picksy Store admin account
               </p>
             </div>
           </div>
@@ -291,7 +291,7 @@ export default function AdminSettings({
               <h2>Security</h2>
 
               <p>
-                Picksy admin security information
+                Picksy Store admin security information
               </p>
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function AdminSettings({
             onClick={onLogout}
           >
             <LogOut size={17} />
-            Logout from Picksy Admin
+            Logout from Picksy Store Admin
           </button>
         </div>
       </div>
