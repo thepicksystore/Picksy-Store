@@ -6,7 +6,6 @@ import {
 import {
   Heart,
   Search,
-  ShoppingCart,
   Menu,
   X,
   ChevronDown,
@@ -197,13 +196,6 @@ export default function Header({
               <span>Wishlist</span>
             </Link>
 
-            <button className="header-action-link" type="button" aria-label="Cart">
-              <span className="header-action-icon">
-                <ShoppingCart size={30} strokeWidth={1.7} />
-                <span className="cart-count">0</span>
-              </span>
-              <span>Cart</span>
-            </button>
           </div>
         </div>
       </div>
