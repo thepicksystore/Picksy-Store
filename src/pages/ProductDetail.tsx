@@ -380,7 +380,7 @@ export default function ProductDetail() {
               PRODUCT IMAGE
           ========================= */}
 
-          <div className="detail-image-gallery">
+          <div className={`detail-image-gallery ${(product.images?.length ?? 0) > 1 ? 'has-thumbnails' : ''}`}>
             <div className="detail-image">
               {(product.images?.[selectedImage] || product.image) ? (
                 <img
