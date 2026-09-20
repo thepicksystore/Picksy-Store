@@ -16,6 +16,51 @@ import { supabase } from '../lib/supabase'
 const marketplaceClass = (name: string) =>
   name.toLowerCase()
 
+function MarketplaceIcon({ name }: { name: string }) {
+  const marketplace = name.trim().toLowerCase()
+
+  if (marketplace === 'amazon') {
+    return (
+      <span className="marketplace-logo marketplace-logo-amazon" aria-hidden="true">
+        <b>a</b>
+        <i />
+      </span>
+    )
+  }
+
+  if (marketplace === 'flipkart') {
+    return (
+      <span className="marketplace-logo marketplace-logo-flipkart" aria-hidden="true">
+        <b>F</b>
+      </span>
+    )
+  }
+
+  if (marketplace === 'meesho') {
+    return (
+      <span className="marketplace-logo marketplace-logo-meesho" aria-hidden="true">
+        <b>m</b>
+      </span>
+    )
+  }
+
+  if (marketplace === 'myntra') {
+    return (
+      <span className="marketplace-logo marketplace-logo-myntra" aria-hidden="true">
+        <b>M</b>
+      </span>
+    )
+  }
+
+  const fallback = name.trim().charAt(0).toUpperCase() || '?'
+
+  return (
+    <span className="marketplace-logo marketplace-logo-generic" aria-hidden="true">
+      <b>{fallback}</b>
+    </span>
+  )
+}
+
 export default function ProductCard({
   product,
 }: {
@@ -209,7 +254,10 @@ export default function ProductCard({
               product.marketplace
             )}`}
           >
-            {product.marketplace}
+            <MarketplaceIcon name={product.marketplace} />
+            <span className="marketplace-name">
+              {product.marketplace}
+            </span>
           </span>
 
           <span className="rating">
